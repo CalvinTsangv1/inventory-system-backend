@@ -1,5 +1,6 @@
 import {Column, Entity, OneToMany, OneToOne, PrimaryGeneratedColumn} from "typeorm";
 import {RoleEnum} from "../../../enum/role.enum";
+import {ClientEntity} from "../../client/entity/client.entity";
 
 @Entity('users')
 export class UserEntity {
@@ -17,4 +18,7 @@ export class UserEntity {
 
   @Column({type: "enum", enum: RoleEnum, default: "CUSTOMER"})
   role: RoleEnum;
+
+  @OneToMany(() => ClientEntity, client => client.user)
+  clients: ClientEntity[];
 }

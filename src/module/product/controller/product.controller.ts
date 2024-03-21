@@ -52,12 +52,6 @@ export class ProductController {
   }
 
 
-  @Post("promotion")
-  @ApiOperation({summary: 'Create product promotion'})
-  public async createProductPromotion({}) {
-    //return this.productService.createProductPromotion();
-  }
-
   @Patch(':productId')
   @ApiOperation({summary: 'Update product information'})
   public async updateProductInformationById(@Param('productId') id: string, @Body() updateProductDto: UpdateProductRequestDto) {

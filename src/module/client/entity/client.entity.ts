@@ -1,6 +1,15 @@
-import {Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn} from "typeorm";
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn
+} from "typeorm";
 import {TimestampInterface} from "../../../interface/timestamp.interface";
 import {OrderEntity} from "../../order/entity/order.entity";
+import {UserEntity} from "../../user/entity/user.entity";
 
 @Entity("clients")
 export class ClientEntity implements TimestampInterface {
@@ -22,6 +31,9 @@ export class ClientEntity implements TimestampInterface {
 
   @OneToMany(() => OrderEntity, order => order.client)
   orders: OrderEntity[];
+
+  @ManyToOne(() => UserEntity, user => user.clients)
+  user: UserEntity;
 
   @Column({ type: 'datetime', nullable: true })
   inactiveAt: Date;
