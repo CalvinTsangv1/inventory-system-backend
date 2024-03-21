@@ -1,0 +1,8 @@
+export enum CategoryTypeEnum {
+  FISH = "FISH",
+  SHELLFISH = "SHELLFISH",
+  CRUSTACEAN = "CRUSTACEAN",
+  MOLLUSK = "MOLLUSK",
+  SEAWEED = "SEAWEED",
+  OTHER = "OTHER"
+}
