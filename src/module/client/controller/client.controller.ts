@@ -45,4 +45,5 @@ export class ClientController {
   public async updateClient(@Param('clientId') id: string, @Body() dto: UpdateClientRequestDto) {
     return this.clientService.updateClient(id, dto)
   }
+
 }

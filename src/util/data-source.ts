@@ -6,6 +6,7 @@ import {ProductEntity} from "../module/product/entity/product.entity";
 import {UserEntity} from "../module/user/entity/user.entity";
 import {ClientEntity} from "../module/client/entity/client.entity";
 import {OrderEntity} from "../module/order/entity/order.entity";
+import {OrderProductEntity} from "../module/order/entity/order-product.entity";
 
 config(); // Load environment variables from .env
 export const dataSource = new DataSource({
@@ -18,6 +19,7 @@ export const dataSource = new DataSource({
   entities: [
     UserEntity,
     ClientEntity,
+    OrderProductEntity,
     ProductEntity,
     OrderEntity
   ],
