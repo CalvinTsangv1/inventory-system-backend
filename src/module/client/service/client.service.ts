@@ -59,7 +59,7 @@ export class ClientService {
     }
 
     public async getClients(userId: string, dto: GetClientsRequestDto) {
-        const condition: FindOptionsWhere<ClientEntity> = {user: {id: userId}};
+        const condition: FindOptionsWhere<ClientEntity> = {userId: userId};
 
         if(dto?.clientId) condition.id = dto.clientId;
         if(dto?.phoneNumber) condition.phoneNumber = dto.phoneNumber;

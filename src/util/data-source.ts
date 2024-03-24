@@ -19,9 +19,9 @@ export const dataSource = new DataSource({
   entities: [
     UserEntity,
     ClientEntity,
-    OrderProductEntity,
     ProductEntity,
-    OrderEntity
+    OrderEntity,
+    OrderProductEntity,
   ],
   synchronize: process.env.ENV === "dev", // auto create table if not exist but not recommended in production
 });

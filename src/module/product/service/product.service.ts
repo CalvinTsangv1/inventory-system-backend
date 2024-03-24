@@ -13,6 +13,8 @@ import {UpdateProductPriceRequestDto} from "../dto/product/update-product-price.
 import {OrderStatusEnum} from "../../order/enum/order-status.enum";
 import {GetProductOrderRequestDto} from "../dto/product/get-product-order.request.dto";
 import {SortOrderEnum} from "../../../util/pagination/sort-order.enum";
+import {OrderEntity} from "../../order/entity/order.entity";
+import {OrderProductEntity} from "../../order/entity/order-product.entity";
 
 @Injectable()
 export class ProductService {
@@ -25,6 +27,7 @@ export class ProductService {
   //** get product
   public async getProducts(dto: GetProductRequestDto) {
     const condition: FindOptionsWhere<ProductEntity> = {};
+    const relation = []
 
     if(dto?.ids) condition.id = In(dto.ids);
     if(dto?.productName) condition.name = dto.productName;
@@ -35,13 +38,16 @@ export class ProductService {
 
     this.logger.log(`condition: ${JSON.stringify(condition)}`)
     const options = Builder<PaginationInterface>()
-      .pagination(dto.pagination)
-      .page(dto.page)
-      .limit(dto.limit)
-      .sortBy(dto.sortBy)
-      .sortOrder(dto.sortOrder)
+      .pagination(dto?.pagination)
+      .page(dto?.page)
+      .limit(dto?.limit)
+      .sortBy(dto?.sortBy)
+      .sortOrder(dto?.sortOrder)
       .build();
-    return getPaginatedResult(ProductEntity, condition, options, ['orders']);
+
+   // if(await dataSource.manager.exists(OrderProductEntity, {})) relation.push('orderProduct');
+
+    return getPaginatedResult(ProductEntity, condition, options, relation)
   }
 
   public async getProductById(id: string) {
@@ -49,17 +55,17 @@ export class ProductService {
   }
 
   public async getProductOrder(id: string, dto: GetProductOrderRequestDto) {
-    const condition: FindOptionsWhere<ProductEntity> = {id: id, orders: {status: Not(OrderStatusEnum.DRAFT)}};
+    const condition: FindOptionsWhere<ProductEntity> = {id: id, orderProducts:{order:{status: Not(OrderStatusEnum.DRAFT)}}};
 
     if(!dto?.sortBy) dto.sortBy = 'createdAt';
     if(!dto?.sortOrder) dto.sortOrder = SortOrderEnum.DESC;
 
     const options = Builder<PaginationInterface>()
-      .pagination(dto.pagination)
-      .page(dto.page)
-      .limit(dto.limit)
-      .sortBy(dto?.sortBy)
-      .sortOrder(dto.sortOrder)
+      .pagination(dto?.pagination?? true)
+      .page(dto?.page?? 1)
+      .limit(dto?.limit ?? 10)
+      .sortBy(dto?.sortBy?? "updatedAt")
+      .sortOrder(dto?.sortOrder ?? SortOrderEnum.DESC)
       .build();
 
     return getPaginatedResult(ProductEntity, condition, options, ['orders'])

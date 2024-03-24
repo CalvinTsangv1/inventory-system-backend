@@ -32,8 +32,8 @@ export class ClientEntity implements TimestampInterface {
   @OneToMany(() => OrderEntity, order => order.client)
   orders: OrderEntity[];
 
-  @ManyToOne(() => UserEntity, user => user.clients)
-  user: UserEntity;
+  @Column({type: "varchar", length: 255})
+  userId: string;
 
   @Column({ type: 'datetime', nullable: true })
   inactiveAt: Date;

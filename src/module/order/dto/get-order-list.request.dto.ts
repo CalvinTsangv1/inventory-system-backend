@@ -59,7 +59,7 @@ export class GetOrderListRequestDto {
   @IsOptional()
   sortOrder?: SortOrderEnum;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({default: true})
   @IsBoolean()
   @IsOptional()
   @Transform(({value}) => value === 'true')

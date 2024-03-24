@@ -1,4 +1,4 @@
-import {Controller, Delete, Get, Logger, Param, Patch, Post} from "@nestjs/common";
+import {Body, Controller, Delete, Get, Logger, Param, Patch, Post, Query} from "@nestjs/common";
 import {ApiBearerAuth, ApiOperation, ApiTags} from "@nestjs/swagger";
 import {OrderStatusEnum} from "../enum/order-status.enum";
 import {CreateOrderRequestDto} from "../dto/create-order.request.dto";
@@ -22,20 +22,21 @@ export class OrderController {
 
   constructor(private orderService: OrderService) {}
 
-  @Get(':orderId')
+  @Get(':orderId/id')
   public async getOrderById(@Param('orderId')id: string) {
     return this.orderService.getOrderById(id);
   }
 
-  @Post()
-  @ApiOperation({summary: 'Create order'})
-  public async createOrder(dto: CreateOrderRequestDto) {
-    return this.orderService.createOrder(dto);
+  @Get('list')
+  public async getOrderList(@CurrentUser() userId: string, @Query() dto: GetOrderListRequestDto) {
+    this.logger.log(`get order list: ${JSON.stringify(dto)}`)
+    return this.orderService.getOrderList("1", dto);
   }
 
-  @Get('list')
-  public async getOrderList(userId: string, dto: GetOrderListRequestDto) {
-    return this.orderService.getOrderList(userId, dto);
+  @Post()
+  @ApiOperation({summary: 'Create order'})
+  public async createOrder(@CurrentUser() user: any, @Body() dto: CreateOrderRequestDto) {
+    return this.orderService.createOrder("1", dto);
   }
 
   @Get('cronjob/update-completed-order')
@@ -44,12 +45,12 @@ export class OrderController {
   }
 
   @Patch(':orderId/status')
-  public async updateOrderStatus(@Param('orderId')id: string, dto: {status: OrderStatusEnum}) {
+  public async updateOrderStatus(@Param('orderId')id: string, @Body() dto: {status: OrderStatusEnum}) {
     return this.orderService.updateOrderStatus(id, dto);
   }
 
   @Patch(':orderId')
-  public async updateOrderInfo(@Param('orderId')id: string, dto: UpdateOrderRequestDto) {
+  public async updateOrderInfo(@Param('orderId')id: string, @Body() dto: UpdateOrderRequestDto) {
     return this.orderService.updateOrderInfo(id, dto);
 
   }

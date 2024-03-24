@@ -4,7 +4,7 @@ import {
   Entity,
   JoinTable,
   ManyToMany,
-  ManyToOne, OneToMany,
+  ManyToOne, OneToMany, OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn
 } from "typeorm";
@@ -20,9 +20,8 @@ export class OrderEntity implements TimestampInterface {
   @PrimaryGeneratedColumn()
   id: string;
 
-  @ManyToMany(() => OrderProductEntity)
-  @JoinTable()
-  products: OrderProductEntity[];
+  @OneToMany(() => OrderProductEntity, orderProduct => orderProduct.order)
+  orderProducts: OrderProductEntity[];
 
   @ManyToOne(() => ClientEntity, client => client.orders)
   client: ClientEntity;

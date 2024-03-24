@@ -2,13 +2,14 @@ import { TimestampInterface } from "src/interface/timestamp.interface";
 import {
   Column,
   CreateDateColumn,
-  Entity, ManyToMany,
+  Entity, ManyToMany, OneToMany, OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn
 } from "typeorm";
 import {CategoryTypeEnum} from "../enum/category-type.enum";
 import { CurrencyEnum } from "src/enum/currency.enum";
 import {OrderEntity} from "../../order/entity/order.entity";
+import {OrderProductEntity} from "../../order/entity/order-product.entity";
 
 @Entity("products")
 export class ProductEntity implements TimestampInterface {
@@ -40,8 +41,8 @@ export class ProductEntity implements TimestampInterface {
   @Column({type: "text", nullable: true})
   photoUrl: string;
 
-  @ManyToMany(() => OrderEntity, order => order.products)
-  orders: OrderEntity[];
+  @OneToMany(() => OrderProductEntity, orderProduct => orderProduct.product)
+  orderProducts: OrderProductEntity[];
 
   @Column({ type: 'datetime', nullable: true })
   inactiveAt: Date;

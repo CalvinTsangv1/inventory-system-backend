@@ -34,7 +34,7 @@ export class ProductController {
 
   @Get('orders/:productId')
   @ApiOperation({summary: 'Get product order'})
-  public async getProductOrder(@Param('productId') id: string, dto: GetProductOrderRequestDto) {
+  public async getProductOrder(@Param('productId') id: string, @Query() dto: GetProductOrderRequestDto) {
     return this.productService.getProductOrder(id, dto);
   }
 

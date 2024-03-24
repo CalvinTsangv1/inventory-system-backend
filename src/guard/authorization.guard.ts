@@ -23,11 +23,11 @@ export class AuthorizationGuard implements CanActivate {
 
         const request = context.switchToHttp().getRequest();
 
-        const allowUnauthorizedRequest = this.reflector.get<boolean>('allowUnauthorizedRequest', context.getHandler());
+        //const allowUnauthorizedRequest = this.reflector.get<boolean>('allowUnauthorizedRequest', context.getHandler());
 
-        if (allowUnauthorizedRequest) {
+        //if (allowUnauthorizedRequest) {
             return true;
-        }
+        //}
         if (request && request.headers && request.headers.authorization && request.headers.authorization.startsWith("Bearer ")) {
             const jwt = request.headers.authorization.replace('Bearer ', '')
             if (isJWT(jwt)) {

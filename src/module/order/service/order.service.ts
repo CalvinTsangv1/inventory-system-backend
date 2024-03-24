@@ -1,8 +1,7 @@
-import {Injectable} from "@nestjs/common";
+import {Injectable, Logger} from "@nestjs/common";
 import {CreateOrderRequestDto} from "../dto/create-order.request.dto";
 import {dataSource} from "../../../util/data-source";
 import {ClientEntity} from "../../client/entity/client.entity";
-import {ProductEntity} from "../../product/entity/product.entity";
 import {Builder} from "builder-pattern";
 import {OrderEntity} from "../entity/order.entity";
 import {OrderStatusEnum} from "../enum/order-status.enum";
@@ -13,9 +12,14 @@ import {PaginationInterface} from "../../../interface/pagination.interface";
 import {UpdateOrderRequestDto} from "../dto/update-order.request.dto";
 import {OrderProductEntity} from "../entity/order-product.entity";
 import moment from "moment-timezone";
+import {SortOrderEnum} from "../../../util/pagination/sort-order.enum";
+import {ProductEntity} from "../../product/entity/product.entity";
 
 @Injectable()
 export class OrderService {
+
+  private readonly logger = new Logger(OrderService.name);
+
   constructor() {
   }
 
@@ -27,14 +31,14 @@ export class OrderService {
   }
 
   public async getOrderList(userId: string, dto: GetOrderListRequestDto) {
-    const condition: FindOptionsWhere<OrderEntity> = {};
+    const condition: FindOptionsWhere<OrderEntity> = {userId: userId};
 
     if(dto?.clientIds) {
       condition.client = {id: In(dto.clientIds)};
     }
 
     if(dto?.productIds) {
-      condition.products = {id: In(dto.productIds)};
+      condition.orderProducts = {product: {id:In(dto.productIds)}};
     }
 
     if(dto?.status) {
@@ -46,14 +50,16 @@ export class OrderService {
     }
 
     const options = Builder<PaginationInterface>()
-      .pagination(dto.pagination)
-      .page(dto.page)
-      .limit(dto.limit)
-      .sortBy(dto.sortBy)
-      .sortOrder(dto.sortOrder)
+      .pagination(dto?.pagination?? true)
+      .page(dto?.page?? 1)
+      .limit(dto?.limit ?? 10)
+      .sortBy(dto?.sortBy?? "updatedAt")
+      .sortOrder(dto?.sortOrder ?? SortOrderEnum.DESC)
       .build();
 
-    return getPaginatedResult(OrderEntity, condition, options, ["client", "products"])
+    this.logger.log(`get order list: ${JSON.stringify(condition)}`)
+
+    return getPaginatedResult(OrderEntity, condition, options, ["client", "orderProducts"])
   }
 
   public async updateCompletedOrderStatus() {
@@ -77,7 +83,7 @@ export class OrderService {
     })
   }
 
-  public async createOrder(dto: CreateOrderRequestDto) {
+  public async createOrder(userId: string, dto: CreateOrderRequestDto) {
     if(dto?.orderProducts.length === 0) {
       throw new Error("order products cannot be empty");
     }
@@ -97,10 +103,15 @@ export class OrderService {
     const products = []
 
     for(let i=0; i<dto.orderProducts.length; i++) {
-      let orderProduct= await dataSource.manager.save(OrderProductEntity, dto.orderProducts[i])
+      let product = await dataSource.manager.findOne(ProductEntity, {where: {id:dto.orderProducts[i].productId}})
+      let orderProduct= await dataSource.manager.save(OrderProductEntity, Builder<OrderProductEntity>()
+        .product(product)
+        .price(dto.orderProducts[i].price)
+        .quantity(dto.orderProducts[i].quantity)
+        .total(dto.orderProducts[i].total).build())
       products.push(orderProduct)
     }
-    const newOrder = Builder<OrderEntity>().products(products)
+    const newOrder = Builder<OrderEntity>().orderProducts(products).userId(userId)
       .note(dto.note)
       .client(client)
       .status(OrderStatusEnum.DRAFT)
@@ -111,8 +122,8 @@ export class OrderService {
       newOrder.expectedDeliveryDate = dto?.expectedDeliveryDate;
       newOrder.expectedPickupDate = dto?.expectedPickupDate;
     }
-
-    return dataSource.manager.save(newOrder);
+    this.logger.log(`create order: ${JSON.stringify(newOrder)}`)
+    return dataSource.manager.save(OrderEntity, newOrder);
   }
 
   public async cancelOrder(role: string, id: string) {
@@ -149,7 +160,7 @@ export class OrderService {
       if(!order) {
         throw new Error("Order not found");
       }
-      if(dto?.orderProducts) order.products = dto.orderProducts as any;
+      if(dto?.orderProducts) order.orderProducts = dto.orderProducts as any;
       if(dto?.note) order.note = dto.note;
       if(dto?.expectedDeliveryDate) order.expectedDeliveryDate = dto.expectedDeliveryDate;
       if(dto?.expectedPickupDate) order.expectedPickupDate = dto.expectedPickupDate;

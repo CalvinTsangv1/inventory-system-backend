@@ -18,7 +18,6 @@ async function bootstrap() {
 
     /** create app **/
     const app = await NestFactory.create(AppModule, { cors: true });
-    app.setGlobalPrefix("v2")
     const reflector = app.get(Reflector)
     const configService = app.get<ConfigService>(ConfigService)
     const jwtService = app.get<JwtService>(JwtService)
@@ -34,7 +33,7 @@ async function bootstrap() {
 
     /** build swagger ui **/
     const options = new DocumentBuilder().addBearerAuth().setTitle(serviceName).setVersion(serviceVersion).build();
-    SwaggerModule.setup('v2/api', app, SwaggerModule.createDocument(app, options));
+    SwaggerModule.setup('api', app, SwaggerModule.createDocument(app, options));
 
     /** setup global validation pipe **/
     app.useGlobalPipes(new ValidationPipe({ transform: true, forbidUnknownValues: false }));
