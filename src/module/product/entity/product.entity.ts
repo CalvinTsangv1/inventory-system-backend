@@ -37,7 +37,7 @@ export class ProductEntity implements TimestampInterface {
   @Column({type: "enum", enum: CurrencyEnum, default: CurrencyEnum.CAD})
   currency: CurrencyEnum;
 
-  @Column({type: "text"})
+  @Column({type: "text", nullable: true})
   photoUrl: string;
 
   @ManyToMany(() => OrderEntity, order => order.products)
