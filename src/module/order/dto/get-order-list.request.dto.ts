@@ -24,12 +24,12 @@ export class GetOrderListRequestDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsDateString()
-  startPeriodPickupDate?: string;
+  startPeriodPickupDate?: Date;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsDateString()
-  endPeriodPickupDate?: string;
+  endPeriodPickupDate?: Date;
 
   @ApiPropertyOptional()
   @IsNumber()

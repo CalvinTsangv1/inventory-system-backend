@@ -1,15 +1,18 @@
-import { Injectable, Logger } from "@nestjs/common";
+import {Injectable, Logger} from "@nestjs/common";
 import {ConfigService} from "@nestjs/config";
 import {dataSource} from "../../../util/data-source";
 import {ProductEntity} from "../entity/product.entity";
 import {getPaginatedResult} from "../../../util/pagination/pagination";
-import {Between, FindOptionsWhere, IsNull, LessThan, Not, In} from "typeorm";
+import {Between, FindOptionsWhere, In, Not} from "typeorm";
 import {PaginationInterface} from "../../../interface/pagination.interface";
 import {CreateProductRequestDto} from "../dto/product/create-product.request.dto";
 import {Builder} from "builder-pattern";
 import {UpdateProductRequestDto} from "../dto/product/update-product.request.dto";
 import {GetProductRequestDto} from "../dto/product/get-product.request.dto";
 import {UpdateProductPriceRequestDto} from "../dto/product/update-product-price.request.dto";
+import {OrderStatusEnum} from "../../order/enum/order-status.enum";
+import {GetProductOrderRequestDto} from "../dto/product/get-product-order.request.dto";
+import {SortOrderEnum} from "../../../util/pagination/sort-order.enum";
 
 @Injectable()
 export class ProductService {
@@ -38,11 +41,28 @@ export class ProductService {
       .sortBy(dto.sortBy)
       .sortOrder(dto.sortOrder)
       .build();
-    return getPaginatedResult(ProductEntity, condition, options, ['promotions', 'productAdditionalInfo', 'supplier']);
+    return getPaginatedResult(ProductEntity, condition, options, ['orders']);
   }
 
   public async getProductById(id: string) {
     return dataSource.manager.findOne(ProductEntity, {where:{id:id}});
+  }
+
+  public async getProductOrder(id: string, dto: GetProductOrderRequestDto) {
+    const condition: FindOptionsWhere<ProductEntity> = {id: id, orders: {status: Not(OrderStatusEnum.DRAFT)}};
+
+    if(!dto?.sortBy) dto.sortBy = 'createdAt';
+    if(!dto?.sortOrder) dto.sortOrder = SortOrderEnum.DESC;
+
+    const options = Builder<PaginationInterface>()
+      .pagination(dto.pagination)
+      .page(dto.page)
+      .limit(dto.limit)
+      .sortBy(dto?.sortBy)
+      .sortOrder(dto.sortOrder)
+      .build();
+
+    return getPaginatedResult(ProductEntity, condition, options, ['orders'])
   }
 
   public async getProductByIds(ids: string[]) {

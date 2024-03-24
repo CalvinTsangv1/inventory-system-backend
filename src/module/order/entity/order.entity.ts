@@ -31,10 +31,10 @@ export class OrderEntity implements TimestampInterface {
   status: OrderStatusEnum;
 
   @Column({ type: 'datetime'})
-  expectedDeliveryDate: Date | string;
+  expectedDeliveryDate: Date;
 
   @Column({ type: 'datetime'})
-  expectedPickupDate: Date | string;
+  expectedPickupDate: Date;
 
   @Column({ type: 'text', nullable: true})
   note: string;

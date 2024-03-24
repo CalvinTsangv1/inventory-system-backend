@@ -11,6 +11,7 @@ import {GetOrderListRequestDto} from "../dto/get-order-list.request.dto";
 import {FindOptionsWhere} from "typeorm";
 import {OrderService} from "../service/order.service";
 import {UpdateOrderRequestDto} from "../dto/update-order.request.dto";
+import {CurrentUser} from "../../../decorator/current-user.decorator";
 
 @ApiBearerAuth()
 @Controller("orders")
@@ -37,6 +38,11 @@ export class OrderController {
     return this.orderService.getOrderList(userId, dto);
   }
 
+  @Get('cronjob/update-completed-order')
+  public async updateCompletedOrder() {
+    return this.orderService.updateCompletedOrderStatus();
+  }
+
   @Patch(':orderId/status')
   public async updateOrderStatus(@Param('orderId')id: string, dto: {status: OrderStatusEnum}) {
     return this.orderService.updateOrderStatus(id, dto);
@@ -49,8 +55,8 @@ export class OrderController {
   }
 
   @Delete(':orderId')
-  public async cancelOrder(id: string) {
-    return this.orderService.cancelOrder(id);
+  public async cancelOrder(@CurrentUser() user: any, id: string) {
+    return this.orderService.cancelOrder("sales",id);
   }
 
 }

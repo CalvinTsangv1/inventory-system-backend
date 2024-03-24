@@ -7,11 +7,12 @@ import {Builder} from "builder-pattern";
 import {OrderEntity} from "../entity/order.entity";
 import {OrderStatusEnum} from "../enum/order-status.enum";
 import {GetOrderListRequestDto} from "../dto/get-order-list.request.dto";
-import {Between, FindOptionsWhere, In} from "typeorm";
+import {Between, FindOptionsWhere, In, LessThan} from "typeorm";
 import {getPaginatedResult} from "../../../util/pagination/pagination";
 import {PaginationInterface} from "../../../interface/pagination.interface";
 import {UpdateOrderRequestDto} from "../dto/update-order.request.dto";
 import {OrderProductEntity} from "../entity/order-product.entity";
+import moment from "moment-timezone";
 
 @Injectable()
 export class OrderService {
@@ -53,6 +54,17 @@ export class OrderService {
       .build();
 
     return getPaginatedResult(OrderEntity, condition, options, ["client", "products"])
+  }
+
+  public async updateCompletedOrderStatus() {
+    return dataSource.manager.find(OrderEntity, {where: {status: OrderStatusEnum.DELIVERED, updatedAt: LessThan(moment().subtract(7,'days').toDate())}}).then(orders => {
+      orders.forEach(order => {
+        if(order.expectedDeliveryDate && new Date(order.expectedDeliveryDate) < new Date()) {
+          order.status = OrderStatusEnum.COMPLETED;
+          dataSource.manager.save(order);
+        }
+      })
+    })
   }
 
   public async updateOrderStatus(id: string, dto: {status: OrderStatusEnum}) {
@@ -103,12 +115,21 @@ export class OrderService {
     return dataSource.manager.save(newOrder);
   }
 
-  public async cancelOrder(id: string) {
+  public async cancelOrder(role: string, id: string) {
     return dataSource.manager.findOne(OrderEntity, {where: {id}}).then(order => {
       if(!order) {
         throw new Error("Order not found");
       }
-      order.status = OrderStatusEnum.CANCELLED;
+
+      //sales order can only be cancelled if it is in draft or holding status
+      if(order.status === OrderStatusEnum.DRAFT || order.status === OrderStatusEnum.HOLDING) {
+        order.status = OrderStatusEnum.CANCELLED;
+      }
+
+      //warehouse order can only be cancelled if it is in confirmed status
+      if(order.status === OrderStatusEnum.CONFIRMED && role === "warehouse") {
+        order.status = OrderStatusEnum.CANCELLED;
+      }
       return dataSource.manager.save(order);
     })
   }

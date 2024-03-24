@@ -6,6 +6,7 @@ import {UpdateProductRequestDto} from "../dto/product/update-product.request.dto
 import {CreateProductRequestDto} from "../dto/product/create-product.request.dto";
 import { GetProductRequestDto } from "../dto/product/get-product.request.dto";
 import {UpdateProductPriceRequestDto} from "../dto/product/update-product-price.request.dto";
+import {GetProductOrderRequestDto} from "../dto/product/get-product-order.request.dto";
 
 const AllowUnauthorizedRequest = () => SetMetadata('allowUnauthorizedRequest', true);
 @ApiBearerAuth()
@@ -29,6 +30,12 @@ export class ProductController {
   @ApiOperation({summary: 'Get product by id'})
   public async getProductById(@Param('productId') id: string): Promise<ProductEntity> {
     return this.productService.getProductById(id);
+  }
+
+  @Get('orders/:productId')
+  @ApiOperation({summary: 'Get product order'})
+  public async getProductOrder(@Param('productId') id: string, dto: GetProductOrderRequestDto) {
+    return this.productService.getProductOrder(id, dto);
   }
 
   @Get('cronjob/update-product-purchase-quantity')
