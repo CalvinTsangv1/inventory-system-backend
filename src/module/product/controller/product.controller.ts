@@ -10,8 +10,8 @@ import {GetProductOrderRequestDto} from "../dto/product/get-product-order.reques
 
 const AllowUnauthorizedRequest = () => SetMetadata('allowUnauthorizedRequest', true);
 @ApiBearerAuth()
-@Controller('product')
-@ApiTags('product')
+@Controller('products')
+@ApiTags('products')
 export class ProductController {
   private readonly logger = new Logger(ProductController.name);
 

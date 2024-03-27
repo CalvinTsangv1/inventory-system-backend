@@ -13,7 +13,6 @@ import {UpdateProductPriceRequestDto} from "../dto/product/update-product-price.
 import {OrderStatusEnum} from "../../order/enum/order-status.enum";
 import {GetProductOrderRequestDto} from "../dto/product/get-product-order.request.dto";
 import {SortOrderEnum} from "../../../util/pagination/sort-order.enum";
-import {OrderEntity} from "../../order/entity/order.entity";
 import {OrderProductEntity} from "../../order/entity/order-product.entity";
 
 @Injectable()
@@ -47,7 +46,24 @@ export class ProductService {
 
    // if(await dataSource.manager.exists(OrderProductEntity, {})) relation.push('orderProduct');
 
-    return getPaginatedResult(ProductEntity, condition, options, relation)
+    let products = await getPaginatedResult(ProductEntity, condition, options, relation)
+
+    this.logger.log(`products: ${JSON.stringify(products)}`)
+
+    return await Promise.all(products?.docs?.map(async (product: ProductEntity) => {
+      const totalOrderQuantity = await this.getTotalHoldingOrderQuantity(product.id);
+      return {...product, totalHoldingQuantity: totalOrderQuantity}
+    }))
+  }
+
+  private async getTotalOrderQuantity(productId: string) {
+    const orderProducts = await dataSource.manager.find(OrderProductEntity, {where:{id: productId, order:{status: Not(OrderStatusEnum.DRAFT)}}});
+    return orderProducts.reduce((total, orderProduct) => total + orderProduct.quantity, 0);
+  }
+
+  private async getTotalHoldingOrderQuantity(productId: string) {
+    const orderProducts = await dataSource.manager.find(OrderProductEntity, {where:{id: productId, order:{status: In([OrderStatusEnum.HOLDING, OrderStatusEnum.CONFIRMED])}}});
+    return orderProducts.reduce((total, orderProduct) => total + orderProduct.quantity, 0);
   }
 
   public async getProductById(id: string) {
@@ -94,6 +110,11 @@ export class ProductService {
     return dataSource.manager.save(product);
   }
 
+  public async updateStockQuantity(id: string, consumedQuantity: number){
+    const product = await this.getProductById(id);
+    product.stockQuantity = product.stockQuantity - consumedQuantity;
+    return dataSource.manager.save(product);
+  }
 
 
   public async updateProductPrice(id: string, updateProductDto: UpdateProductPriceRequestDto){
