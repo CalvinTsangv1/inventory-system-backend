@@ -1,5 +1,6 @@
 import {ApiProperty, ApiPropertyOptional} from "@nestjs/swagger";
-import {IsNumber, IsOptional, IsString} from "class-validator";
+import {IsEnum, IsNumber, IsOptional, IsString} from "class-validator";
+import {OrderProductStatusEnum} from "../enum/order-product-status.enum";
 
 export class OrderProductDto {
 
@@ -15,6 +16,11 @@ export class OrderProductDto {
   @ApiProperty()
   @IsNumber()
   quantity: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsEnum(OrderProductStatusEnum)
+  status?: OrderProductStatusEnum;
 
   @ApiProperty()
   @IsNumber()

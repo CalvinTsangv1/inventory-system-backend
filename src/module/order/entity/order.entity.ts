@@ -8,11 +8,11 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn
 } from "typeorm";
-import {ProductEntity} from "../../product/entity/product.entity";
 import {ClientEntity} from "../../client/entity/client.entity";
 import {OrderStatusEnum} from "../enum/order-status.enum";
 import {TimestampInterface} from "../../../interface/timestamp.interface";
 import {OrderProductEntity} from "./order-product.entity";
+import {PaymentTypeEnum} from "../enum/payment-type.enum";
 
 @Entity("orders")
 export class OrderEntity implements TimestampInterface {
@@ -28,6 +28,9 @@ export class OrderEntity implements TimestampInterface {
 
   @Column({type: "enum", enum: OrderStatusEnum, default: OrderStatusEnum.DRAFT})
   status: OrderStatusEnum;
+
+  @Column({type: "enum", enum: PaymentTypeEnum, default: PaymentTypeEnum.E_TRANSFER})
+  paymentType: PaymentTypeEnum;
 
   @Column({ type: 'datetime'})
   expectedDeliveryDate: Date;

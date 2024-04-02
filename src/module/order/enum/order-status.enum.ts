@@ -4,12 +4,8 @@ export enum OrderStatusEnum {
   /** if draft order is not firm, it will be deleted after 30 days **/
   DRAFT = "DRAFT",
 
-  /** order firm and hold products **/
-  /** update stock quantity **/
-  HOLDING = "HOLDING",
-
-  /** order firm and confirmed by warehouse **/
-  CONFIRMED = "CONFIRMED",
+  /** order firm and process those products **/
+  PROCESSING = "PROCESSING",
 
   /** order firm and cancelled by client **/
   /** cancelled order will be returned to warehouse and record inactiveAt **/

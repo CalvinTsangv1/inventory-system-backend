@@ -27,7 +27,7 @@ export class OrderController {
     return this.orderService.getOrderById(id);
   }
 
-  @Get('list')
+  @Get('')
   public async getOrderList(@CurrentUser() userId: string, @Query() dto: GetOrderListRequestDto) {
     this.logger.log(`get order list: ${JSON.stringify(dto)}`)
     return this.orderService.getOrderList("1", dto);

@@ -1,7 +1,8 @@
-import {Controller, Get, Query, SetMetadata} from "@nestjs/common";
+import {Body, Controller, Get, Post, Query, SetMetadata} from "@nestjs/common";
 import {ApiBearerAuth, ApiOperation, ApiTags} from "@nestjs/swagger";
 import { NotificationService } from "../service/notification.service";
 import { SendMessageRequestDto } from "../dto/request/send-message.request.dto";
+import {TwilioIncomingMessageRequestDto} from "../dto/request/twilio-incoming-message.request.dto";
 
 const AllowUnauthorizedRequest = () => SetMetadata('allowUnauthorizedRequest', true);
 const isPublic = () => SetMetadata('isPublic', true);
@@ -20,9 +21,17 @@ export class NotificationController {
     }
 
     @AllowUnauthorizedRequest()
-    @Get("cronjob/send-message")
+    @Post("cronjob/send-message")
     @ApiOperation({summary: "process scheduled notification message"})
     public async processScheduledNotifications() {
+        console.log(`processScheduledNotifications`)
         return await this.notificationService.processScheduledNotifications();
+    }
+
+    @AllowUnauthorizedRequest()
+    @Post("/incoming-message")
+    @ApiOperation({summary: "process scheduled notification message"})
+    public async processIncomingMessage(@Body() dto: TwilioIncomingMessageRequestDto) {
+        return await this.notificationService.processIncomingMessage(dto);
     }
 }

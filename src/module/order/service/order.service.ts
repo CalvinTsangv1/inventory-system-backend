@@ -14,20 +14,22 @@ import {OrderProductEntity} from "../entity/order-product.entity";
 import moment from "moment-timezone";
 import {SortOrderEnum} from "../../../util/pagination/sort-order.enum";
 import {ProductEntity} from "../../product/entity/product.entity";
+import {ProductService} from "../../product/service/product.service";
+import {OrderProductStatusEnum} from "../enum/order-product-status.enum";
 
 @Injectable()
 export class OrderService {
 
   private readonly logger = new Logger(OrderService.name);
 
-  constructor() {
+  constructor(private productService: ProductService) {
   }
 
   public async getOrderById(id: string) {
     if(!id) {
       throw new Error("Order ID is required");
     }
-    return dataSource.manager.findOne(OrderEntity, {where: {id}});
+    return dataSource.manager.findOne(OrderEntity, {where: {id}, relations: ["client", "orderProducts", "orderProducts.product"]})
   }
 
   public async getOrderList(userId: string, dto: GetOrderListRequestDto) {
@@ -104,10 +106,16 @@ export class OrderService {
 
     for(let i=0; i<dto.orderProducts.length; i++) {
       let product = await dataSource.manager.findOne(ProductEntity, {where: {id:dto.orderProducts[i].productId}})
+      if(dto.orderProducts[i].quantity > await this.productService.getAvailableProductInventory(product.id)) {
+        dto.orderProducts[i].status = OrderProductStatusEnum.WAITING;
+      } else {
+        dto.orderProducts[i].status = OrderProductStatusEnum.HOLDING;
+      }
       let orderProduct= await dataSource.manager.save(OrderProductEntity, Builder<OrderProductEntity>()
         .product(product)
         .price(dto.orderProducts[i].price)
         .quantity(dto.orderProducts[i].quantity)
+        .status(dto.orderProducts[i].status)
         .total(dto.orderProducts[i].total).build())
       products.push(orderProduct)
     }
@@ -118,7 +126,7 @@ export class OrderService {
       .build();
 
     if(dto?.expectedDeliveryDate || dto?.expectedPickupDate) {
-      newOrder.status = OrderStatusEnum.HOLDING;
+      newOrder.status = OrderStatusEnum.PROCESSING;
       newOrder.expectedDeliveryDate = dto?.expectedDeliveryDate;
       newOrder.expectedPickupDate = dto?.expectedPickupDate;
     }
@@ -133,14 +141,10 @@ export class OrderService {
       }
 
       //sales order can only be cancelled if it is in draft or holding status
-      if(order.status === OrderStatusEnum.DRAFT || order.status === OrderStatusEnum.HOLDING) {
+      if(order.status === OrderStatusEnum.DRAFT || order.status === OrderStatusEnum.PROCESSING) {
         order.status = OrderStatusEnum.CANCELLED;
       }
 
-      //warehouse order can only be cancelled if it is in confirmed status
-      if(order.status === OrderStatusEnum.CONFIRMED && role === "warehouse") {
-        order.status = OrderStatusEnum.CANCELLED;
-      }
       return dataSource.manager.save(order);
     })
   }

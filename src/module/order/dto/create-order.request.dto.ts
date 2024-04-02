@@ -1,8 +1,9 @@
 import {ApiProperty, ApiPropertyOptional} from "@nestjs/swagger";
-import {IsArray, IsDateString, IsOptional, IsString, ValidateNested} from "class-validator";
+import {IsArray, IsDateString, IsEnum, IsOptional, IsString, ValidateNested} from "class-validator";
 import {CreateProductRequestDto} from "../../product/dto/product/create-product.request.dto";
 import {OrderProductDto} from "./product-order.dto";
 import {Type} from "class-transformer";
+import {OrderProductStatusEnum} from "../enum/order-product-status.enum";
 
 export class CreateOrderRequestDto {
 

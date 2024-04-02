@@ -1,7 +1,7 @@
 import { MessageType } from "../../enum/message-type.enum";
 import { CountryCode } from "libphonenumber-js";
 import { ApiProperty } from "@nestjs/swagger";
-import { IsEnum, IsIn, IsString } from "class-validator";
+import {IsArray, IsEnum, IsIn, IsString} from "class-validator";
 
 export class SendMessageRequestDto {
   @ApiProperty({default: "Test message from aircity"})
@@ -20,4 +20,8 @@ export class SendMessageRequestDto {
   @ApiProperty({enum: MessageType, default: MessageType.SMS})
   @IsEnum(MessageType)
   type: MessageType;
+
+  @ApiProperty()
+  @IsArray()
+  mediaUrl: string[];
 }

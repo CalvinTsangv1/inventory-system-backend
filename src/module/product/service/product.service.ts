@@ -14,6 +14,8 @@ import {OrderStatusEnum} from "../../order/enum/order-status.enum";
 import {GetProductOrderRequestDto} from "../dto/product/get-product-order.request.dto";
 import {SortOrderEnum} from "../../../util/pagination/sort-order.enum";
 import {OrderProductEntity} from "../../order/entity/order-product.entity";
+import {CategoryTypeEnum} from "../enum/category-type.enum";
+import {OrderProductStatusEnum} from "../../order/enum/order-product-status.enum";
 
 @Injectable()
 export class ProductService {
@@ -51,19 +53,10 @@ export class ProductService {
     this.logger.log(`products: ${JSON.stringify(products)}`)
 
     return await Promise.all(products?.docs?.map(async (product: ProductEntity) => {
-      const totalOrderQuantity = await this.getTotalHoldingOrderQuantity(product.id);
-      return {...product, totalHoldingQuantity: totalOrderQuantity}
+      const totalOrderQuantity = await this.getHoldingProductInventory(product.id);
+      const totalOrderConfirmedQuantity = await this.getConfirmedProductInventory(product.id);
+      return {...product, totalHoldingQuantity: totalOrderQuantity, totalConfirmedQuantity: totalOrderConfirmedQuantity}
     }))
-  }
-
-  private async getTotalOrderQuantity(productId: string) {
-    const orderProducts = await dataSource.manager.find(OrderProductEntity, {where:{id: productId, order:{status: Not(OrderStatusEnum.DRAFT)}}});
-    return orderProducts.reduce((total, orderProduct) => total + orderProduct.quantity, 0);
-  }
-
-  private async getTotalHoldingOrderQuantity(productId: string) {
-    const orderProducts = await dataSource.manager.find(OrderProductEntity, {where:{id: productId, order:{status: In([OrderStatusEnum.HOLDING, OrderStatusEnum.CONFIRMED])}}});
-    return orderProducts.reduce((total, orderProduct) => total + orderProduct.quantity, 0);
   }
 
   public async getProductById(id: string) {
@@ -204,5 +197,51 @@ export class ProductService {
     }
     this.logger.log("Updating product purchase quantity completed.");
   }
+
+
+  public async getConfirmedProductInventory(productId?: string) {
+    return await dataSource.manager.sum(OrderProductEntity, "quantity",{product: {id:productId}, status: In([OrderProductStatusEnum.CONFIRMED])}) ?? 0;
+  }
+
+  public async getHoldingProductInventory(productId?: string) {
+    return await dataSource.manager.sum(OrderProductEntity, "quantity", {product: {id: productId}, status: OrderProductStatusEnum.HOLDING}) ?? 0;
+  }
+
+  public async getWaitingProductInventory(productId?: string) {
+    return await dataSource.manager.sum(OrderProductEntity, "quantity", {product: {id: productId}, status: OrderProductStatusEnum.WAITING}) ?? 0;
+  }
+
+  public async getDeliveredProductInventory(productId?: string) {
+    return await dataSource.manager.sum(OrderProductEntity, "quantity",{product: {id: productId}, status: In([OrderProductStatusEnum.DELIVERED, OrderProductStatusEnum.CONFIRMED])}) ?? 0;
+  }
+
+  public async getAvailableProductInventory(productId?: string) {
+    const totalQuantity = await dataSource.manager.findOne(ProductEntity, {where: {id: productId}, select: ['stockQuantity']});
+
+    this.logger.log(`product id: ${JSON.stringify(await dataSource.manager.find(OrderProductEntity, {where:{product: {id: productId}}}))}`)
+    const occupiedQuantity = await dataSource.manager.sum(OrderProductEntity, "quantity", {product: {id: productId}, status: In([OrderProductStatusEnum.WAITING, OrderProductStatusEnum.HOLDING])}) ?? 0;
+
+    return (totalQuantity.stockQuantity - occupiedQuantity) ?? 0;
+  }
+
+  public async getAvailableCategoryInventory(type: CategoryTypeEnum): Promise<any> {
+    const catalog = await dataSource.manager.find(ProductEntity, {where: {category: type}});
+    const inventory = []
+    for(let i=0; i<catalog.length; i++) {
+      inventory.push({name: catalog[i].name, count: await this.getAvailableProductInventory(catalog[i].id), unit: catalog[i].unit, cost: catalog[i].price, description: catalog[i].description})
+    }
+    return inventory;
+  }
+
+  public async getAllInventory() {
+    const result = []
+    result.push(await dataSource.manager.sum(OrderProductEntity, "quantity", {status: OrderProductStatusEnum.WAITING}) ?? 0)
+    result.push(await dataSource.manager.sum(OrderProductEntity, "quantity", {status: OrderProductStatusEnum.HOLDING}) ?? 0)
+    result.push(await dataSource.manager.sum(OrderProductEntity, "quantity", {status:In([OrderProductStatusEnum.CONFIRMED, OrderProductStatusEnum.DELIVERED])}) ?? 0)
+    result.push(await dataSource.manager.sum(OrderProductEntity, "quantity", {status: OrderProductStatusEnum.CANCELLED}) ?? 0)
+    result.push(await dataSource.manager.sum(ProductEntity, "stockQuantity", {})-result[2]-result[1])
+    return result;
+  }
+
 
 }

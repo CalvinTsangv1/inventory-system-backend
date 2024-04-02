@@ -10,8 +10,8 @@ import {GetProductOrderRequestDto} from "../dto/product/get-product-order.reques
 
 const AllowUnauthorizedRequest = () => SetMetadata('allowUnauthorizedRequest', true);
 @ApiBearerAuth()
-@Controller('products')
-@ApiTags('products')
+@Controller('catalog')
+@ApiTags('catalog')
 export class ProductController {
   private readonly logger = new Logger(ProductController.name);
 
@@ -20,72 +20,72 @@ export class ProductController {
 
   @AllowUnauthorizedRequest()
   @Get('')
-  @ApiOperation({summary: 'Get products'})
+  @ApiOperation({summary: 'Get catalog products'})
   public async getProducts(@Query() dto: GetProductRequestDto) {
     this.logger.log(`getProducts: ${JSON.stringify(dto)}`);
     return this.productService.getProducts(dto);
   }
 
   @Get(':productId')
-  @ApiOperation({summary: 'Get product by id'})
+  @ApiOperation({summary: 'Get catalog product by id'})
   public async getProductById(@Param('productId') id: string): Promise<ProductEntity> {
     return this.productService.getProductById(id);
   }
 
   @Get('orders/:productId')
-  @ApiOperation({summary: 'Get product order'})
+  @ApiOperation({summary: 'Get catalog product order'})
   public async getProductOrder(@Param('productId') id: string, @Query() dto: GetProductOrderRequestDto) {
     return this.productService.getProductOrder(id, dto);
   }
 
   @Get('cronjob/update-product-purchase-quantity')
-  @ApiOperation({summary: 'Update product purchase quantity daily'})
+  @ApiOperation({summary: 'Update catalog product purchase quantity daily'})
   public async updateProductPurchaseQuantity() {
     return this.productService.updateProductPurchaseQuantity();
   }
 
   @AllowUnauthorizedRequest()
   @Post('')
-  @ApiOperation({summary: 'Create product'})
+  @ApiOperation({summary: 'Create catalog product'})
   public async createProduct(@Body() dto: CreateProductRequestDto) {
     return this.productService.createProduct(dto);
   }
 
   @AllowUnauthorizedRequest()
   @Post('bulk')
-  @ApiOperation({summary: 'Create product by batch'})
+  @ApiOperation({summary: 'Create catalog product by batch'})
   public async createProducts(@Body() dto: CreateProductRequestDto[]) {
     return this.productService.createProducts(dto);
   }
 
 
   @Patch(':productId')
-  @ApiOperation({summary: 'Update product information'})
+  @ApiOperation({summary: 'Update catalog product information'})
   public async updateProductInformationById(@Param('productId') id: string, @Body() updateProductDto: UpdateProductRequestDto) {
     return this.productService.updateProductInformationById(id, updateProductDto);
   }
 
   @Patch(':productIds')
-  @ApiOperation({summary: 'Update product information'})
+  @ApiOperation({summary: 'Update catalog product information'})
   public async updateProductInformationByIds(@Param('productIds') ids: string[], @Body() updateProductDto: UpdateProductRequestDto) {
     return this.productService.updateProductInformationByIds(ids, updateProductDto);
   }
 
   @Patch('price/:productId')
-  @ApiOperation({summary: 'Update product price'})
+  @ApiOperation({summary: 'Update catalog product price'})
   public async updateProductPrice(@Param('productId') id: string, @Body() updateProductPrice: UpdateProductPriceRequestDto) {
     return this.productService.updateProductPrice(id, updateProductPrice);
   }
 
   @Patch('stock-quantity/:productId')
-  @ApiOperation({summary: 'Update product stock quantity'})
+  @ApiOperation({summary: 'Update catalog product stock quantity'})
   public async updateProductStockQuantity(@Param('productId') id: string, @Body() updateProductDto: UpdateProductRequestDto) {
     return this.productService.updateProductStockQuantity(id, updateProductDto);
   }
 
   @AllowUnauthorizedRequest()
   @Delete(':productId')
-  @ApiOperation({summary: 'safe delete product'})
+  @ApiOperation({summary: 'safe delete catalog product'})
   public async deleteProduct(@Param('productId') id: string) {
     return this.productService.deleteProduct(id);
   }

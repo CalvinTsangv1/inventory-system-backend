@@ -1,0 +1,11 @@
+export enum PaymentTypeEnum {
+  CASH = "CASH",
+  E_TRANSFER = "E_TRANSFER",
+  CHEQUE = "CHEQUE",
+  CREDIT_CARD = "CREDIT_CARD",
+  DEBIT_CARD = "DEBIT_CARD",
+  PAYPAL = "PAYPAL",
+  GOOGLE_PAY = "GOOGLE_PAY",
+  APPLE_PAY = "APPLE_PAY",
+  ALIPAY = "ALIPAY",
+}

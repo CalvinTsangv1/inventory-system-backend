@@ -1,6 +1,7 @@
 import {Column, Entity, ManyToOne, OneToOne, PrimaryGeneratedColumn} from "typeorm";
 import {OrderEntity} from "./order.entity";
 import {ProductEntity} from "../../product/entity/product.entity";
+import {OrderProductStatusEnum} from "../enum/order-product-status.enum";
 
 @Entity('order_product')
 export class OrderProductEntity {
@@ -13,6 +14,9 @@ export class OrderProductEntity {
 
   @ManyToOne(() => ProductEntity, product => product.orderProducts)
   product: ProductEntity;
+
+  @Column()
+  status: OrderProductStatusEnum
 
   @Column()
   quantity: number;
