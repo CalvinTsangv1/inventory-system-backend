@@ -15,6 +15,10 @@ export class CreateClientRequestDto {
   @IsString()
   address: string;
 
+  @ApiProperty()
+  @IsString()
+  userId: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

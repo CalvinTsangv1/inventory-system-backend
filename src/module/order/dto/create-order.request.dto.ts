@@ -6,6 +6,9 @@ import {Type} from "class-transformer";
 import {OrderProductStatusEnum} from "../enum/order-product-status.enum";
 
 export class CreateOrderRequestDto {
+  @ApiProperty()
+  @IsString()
+  userId: string;
 
   @ApiProperty()
   @ValidateNested({each: true})

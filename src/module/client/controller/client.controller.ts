@@ -15,29 +15,29 @@ export class ClientController {
 
   constructor(private clientService: ClientService) {}
 
-  @Get(':clientId')
-  @ApiOperation({summary: 'Get client details by id'})
-  public async getClientDetails(@Param('clientId') id: string) {
-    return this.clientService.getClientDetails(id);
-  }
-
-  @Get(':clientId/orders')
-  @ApiOperation({summary: 'Get client orders by id'})
-  public async getClientOrders(@Param('clientId') id: string, @Query() dto: GetClientOrdersRequestDto) {
-    return this.clientService.getClientOrders(id, dto);
-  }
-
-
   @Get('list')
   @ApiOperation({summary: 'Get list of clients by user (sales / warehouse)'})
-  public async getClients(@CurrentUser() userId: string, @Query() dto: GetClientsRequestDto) {
-    return this.clientService.getClients(userId, dto)
+  public async getClients(/*@CurrentUser() user: any, */@Query() dto: GetClientsRequestDto) {
+    return this.clientService.getClients(dto.userId, dto)
   }
 
   @Post()
   @ApiOperation({summary: 'Create client'})
   public async createClient(@Body() dto: CreateClientRequestDto) {
     return this.clientService.createClient(dto)
+  }
+
+  @Get('')
+  @ApiOperation({summary: 'Get client details'})
+  public async getClientDetailsById(@Query() dto: GetClientsRequestDto) {
+    return this.clientService.getClientDetails(dto);
+  }
+
+
+  @Get(':clientId/orders')
+  @ApiOperation({summary: 'Get client orders by id'})
+  public async getClientOrders(@Param('clientId') id: string, @Query() dto: GetClientOrdersRequestDto) {
+    return this.clientService.getClientOrders(id, dto);
   }
 
   @Patch(':clientId')

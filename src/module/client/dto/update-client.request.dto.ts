@@ -6,7 +6,7 @@ export class UpdateClientRequestDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  clientName?: string;
+  contactName?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

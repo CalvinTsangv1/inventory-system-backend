@@ -15,6 +15,8 @@ import {TwilioIncomingMessageRequestDto} from "../dto/request/twilio-incoming-me
 import {MessageCommandEnum} from "../enum/message-command.enum";
 import {ReportService} from "../../report/service/report.service";
 import {CategoryTypeEnum} from "../../product/enum/category-type.enum";
+import {ProductService} from "../../product/service/product.service";
+import {ClientService} from "../../client/service/client.service";
 
 @Injectable()
 export class NotificationService {
@@ -25,7 +27,9 @@ export class NotificationService {
 
     constructor(
       private configService: ConfigService,
-      private reportService: ReportService
+      private reportService: ReportService,
+      private productService: ProductService,
+      private clientService: ClientService
     ) {
         const data: TwilioKeysResponseDto = JSON.parse(this.configService.get<string>("TWILIO_KEY"));
         this.twilioClient = require("twilio")(data.twilio_account_sid, data.twilio_auth_token);
@@ -58,49 +62,75 @@ export class NotificationService {
     public async processIncomingMessage(dto: TwilioIncomingMessageRequestDto) {
         this.logger.log(`incoming message: ${dto.Body} from: ${dto.From} to: ${dto.To}`);
 
-        const splitCommand = dto.Body.replace(/\s+/g, '').split(":");
+        const splitCommand = dto.Body.split(":");
 
         this.logger.log(`commandType: ${splitCommand}`)
         if(!Object.values(MessageCommandEnum).includes(Number(splitCommand[0]))) {
             this.logger.log(`command is wrong: ${dto.Body}, from: ${dto.From} to: ${dto.To}`);
             await this.sendMessage(Builder<SendMessageRequestDto>()
               .toNumber(dto.From)
-              .body("🙇 Invalid command 🙇\nOops! It seems like you entered an invalid command. Let me guide you through the available options:\n\nPlease try again by selecting one of the following commands along with the corresponding value:\n\n👉 0. Category Inventory\n   (Example: 0:FISH)\n   Values: FISH, MOLLUSK, SEAWEED, CRUSTACEAN\n\n👉 1. Product Inventory\n   (Example: 1:PRODUCT_CODE)\n   Value: Enter the product code\n\n👉 2. Daily Inventory\n   (Example: 2)\n\n👉 3. Order\n   (Example: 3:ORDER_CODE)\n   Value: Enter the order code\n\n👉 4. Shipment\n   (Example: 4)\n\n👉 5. Daily Report\n   (Example: 5)\n\n👉 6. Weekly Report\n   (Example: 6)\n\n👉 7. Monthly Report\n   (Example: 7)\n\n👉 8. Yearly Report\n   (Example: 8)\n\n👉 9. Help\n\nPlease enter the command and value in the format shown above to proceed. If you need further assistance, type '9' for help.\n")
+              .body("🙇 無效指令 🙇\n糟糕！看起來您輸入了一個無效指令：\n\n👉 1. 種類庫存\n (輸入 👉 1:FISH)\n 類別值：FISH、MOLLUSK、SEAWEED、CRUSTACEAN\n\n👉 2. 產品庫存\n (輸入 👉2:產品代碼)\n 值：輸入產品代碼\n\n👉 3. 訂單\n (輸入：3:訂單代碼)\n 值：輸入訂單代碼\n\n👉 4. 尋找產品編號\n (輸入：4:產品編號)\n\n👉 5. 尋找種類編號\n\n👉 6. 每日報告\n (輸入：6)\n\n👉 7. 每日種類報告\n (輸入：7:種類編號)\n\n👉 8. 每日產品報告\n (輸入：8:產品編號)\n\n👉 9. 每週報告\n (範例：9)\n\n👉 10. 每月報告\n\n👉 11. 每年報告\n\n👉 12. 客戶資料\n\n👉 13. 幫助\n\n請按照上述格式輸入指令和值以進行操作。如果需要進一步協助，請輸入 '13' 以獲取幫助。\n")
               .type(MessageType.WHATSAPP)
               .build());
             return;
         }
 
-        const result = await this.handleIncomingCommand(Number(splitCommand[0]), splitCommand[1] ?? null);
-
+        const result = await this.handleIncomingCommand(Number(splitCommand[0].replace(/\s+/g, ''))-1, splitCommand[1] ?? null);
+        this.logger.log(`mediaUrl: ${result.mediaUrl}`)
         await this.sendMessage(Builder<SendMessageRequestDto>()
           .toNumber(dto.From)
           .body(result.body)
-          .mediaUrl(result?.mediaUrl?[result.mediaUrl]: null)
+          .mediaUrl(result?.mediaUrl? result.mediaUrl: null)
           .type(MessageType.WHATSAPP)
           .build());
     }
 
     public async handleIncomingCommand(command: number, value: string) {
         if(command === MessageCommandEnum.CATEGORY_INVENTORY) {
-            return {body: await this.reportService.getAvailableCategoryTextReport(value as CategoryTypeEnum), mediaUrl: null}
+            return {body: await this.reportService.getAvailableCategoryTextReport(value as CategoryTypeEnum)}
         } else if(command === MessageCommandEnum.PRODUCT_INVENTORY) {
+            if(!value || value === "") {
+                return {body: "🔍 搜尋產品代碼：\n\n請輸入產品名稱以獲取產品代碼和詳細資訊。📦"}
+            }
             return {body: await this.reportService.getAvailableProductTextReport(value)}
-        } else if(command === MessageCommandEnum.DAILY_INVENTORY) {
-            return {body: await this.reportService.getAvailableDailyTextReport()}
         } else if(command === MessageCommandEnum.ORDER) {
+            if(!value || value === "") {
+                return {body: "🔍 搜尋訂單：\n\n請輸入訂單代碼以獲取訂單詳細資訊。📦"}
+            }
             return {body: await this.reportService.getOrderTextReport(value)}
+        } else if(command === MessageCommandEnum.SEARCH_PRODUCT_CODE) {
+            if(!value || value === "") {
+                return {body: "🔍 搜尋產品代碼：\n\n請輸入產品名稱以獲取產品代碼和詳細資訊。📦"}
+            }
+            const result = await this.productService.searchProductByName(value)
+            if(result && result.length > 0) {
+                this.logger.log(`searchProductByName: ${JSON.stringify(result)}`)
+                return {body: `🔍 搜尋產品代碼：\n${result.map(product => `\n產品名稱：${product.name}\n產品代碼：${product.id}\n產品價格：${product.price}\n產品類別：${product.category}\n產品描述：${product.description}\n`)}`, mediaUrl: result.map(product=> product.photoUrl)}
+            } else {
+                return {body: "🔍 搜尋產品代碼：\n\n找不到產品。請再試一次。 📦"}
+            }
+        } else if(command === MessageCommandEnum.SEARCH_CATEGORY_CODE) {
+            return {body: "🔍 搜尋種類代碼：\n1. FISH\n2. MOLLUSK\n3. SEAWEED\n4. CRUSTACEAN"}
         } else if(command === MessageCommandEnum.DAILY_REPORT) {
             const result = await this.reportService.getAvailableDailyReport()
-            return {body: result.body, mediaUrl: result.mediaUrl}
+            return {body: result.body, mediaUrl: [result.mediaUrl]}
         } else if(command === MessageCommandEnum.DAILY_CATEGORY_REPORT) {
-            const result = await this.reportService.getAvailableCategoryDailyReport(value as CategoryTypeEnum)
-            return {body: result.body, mediaUrl: result.mediaUrl}
+            if(value === null || value === undefined || value === "") {
+                return {body: "🔍 每日種類報告：\n\n請輸入種類編號以獲取每日種類報告。📦"}
+            }
+            if(!Object.values(CategoryTypeEnum).includes(value?.toUpperCase() as CategoryTypeEnum)) {
+                return {body: "🔍 每日種類報告：\n\n找不到種類。請再試一次。 📦"}
+            }
+            const result = await this.reportService.getAvailableCategoryDailyReport(value.toUpperCase() as CategoryTypeEnum)
+            return {body: result.body, mediaUrl: [result.mediaUrl]}
         } else if(command === MessageCommandEnum.DAILY_PRODUCT_REPORT) {
             const result = await this.reportService.getAvailableProductDailyReport(value)
-            return {body: result.body, mediaUrl: result.mediaUrl}
+            return {body: result.body, mediaUrl: [result.mediaUrl]}
+        } else if(command === MessageCommandEnum.CLIENT_DETAILS) {
+            //const result = await this.clientService.getClients("1", {limit: 10, page: 1})
+            //return {body: `🔍 客戶資料：\n\n${result.docs.map(client => `客戶名稱：${client.name}\n客戶電話：${client.phoneNumber}\n客戶地址：${client.address}\n`).join("\n")}`}
         } else {
-            return {body: "唔好再打錯👻👻 再亂打block左你👀", mediaUrl: null}
+            return {body: "打錯了👻👻 唔識就按'11'救助👀"}
         }
     }
 

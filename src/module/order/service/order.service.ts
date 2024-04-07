@@ -16,13 +16,16 @@ import {SortOrderEnum} from "../../../util/pagination/sort-order.enum";
 import {ProductEntity} from "../../product/entity/product.entity";
 import {ProductService} from "../../product/service/product.service";
 import {OrderProductStatusEnum} from "../enum/order-product-status.enum";
+import {EventEmitter2} from "@nestjs/event-emitter";
+import {ProductHistoryLogEntity} from "../../product/entity/product-history-log.entity";
+import {all} from "axios";
 
 @Injectable()
 export class OrderService {
 
   private readonly logger = new Logger(OrderService.name);
 
-  constructor(private productService: ProductService) {
+  constructor(private productService: ProductService, private eventEmitter: EventEmitter2) {
   }
 
   public async getOrderById(id: string) {
@@ -65,7 +68,7 @@ export class OrderService {
   }
 
   public async updateCompletedOrderStatus() {
-    return dataSource.manager.find(OrderEntity, {where: {status: OrderStatusEnum.DELIVERED, updatedAt: LessThan(moment().subtract(7,'days').toDate())}}).then(orders => {
+    return dataSource.manager.find(OrderEntity, {where: {status: OrderStatusEnum.COMPLETED, updatedAt: LessThan(moment().subtract(7,'days').toDate())}}).then(orders => {
       orders.forEach(order => {
         if(order.expectedDeliveryDate && new Date(order.expectedDeliveryDate) < new Date()) {
           order.status = OrderStatusEnum.COMPLETED;
@@ -75,13 +78,36 @@ export class OrderService {
     })
   }
 
-  public async updateOrderStatus(id: string, dto: {status: OrderStatusEnum}) {
-    return dataSource.manager.findOne(OrderEntity, {where: {id}}).then(order => {
+  public async updateOrderStatus(id: string, dto: {orderProductId: string, status: OrderProductStatusEnum}) {
+    return dataSource.manager.findOne(OrderEntity, {where: {id: id}, relations:["orderProducts", "client", "orderProducts.product"]}).then(async order => {
+      this.logger.log(`update order status: ${JSON.stringify(order)}`)
       if(!order) {
         throw new Error("Order not found");
       }
-      order.status = dto.status;
-      return dataSource.manager.save(order);
+
+      let allDelivered = true;
+
+      for(let i=0; i<order.orderProducts.length; i++) {
+        if(order.orderProducts[i].id === dto.orderProductId) {
+          order.orderProducts[i].status = dto.status;
+          await dataSource.manager.save(OrderProductEntity, order.orderProducts[i]);
+
+          if(dto.status === OrderProductStatusEnum.DELIVERED) {
+            order.orderProducts[i].product.stockQuantity = order.orderProducts[i].product.stockQuantity - order.orderProducts[i].quantity;
+            await dataSource.manager.save(ProductEntity, order.orderProducts[i].product);
+            this.eventEmitter.emit('product.exported', Builder<ProductHistoryLogEntity>().product(order.orderProducts[i].product).quantity(order.orderProducts[i].quantity).build());
+          }
+        }
+
+        if(dto.status !== OrderProductStatusEnum.DELIVERED) {
+          allDelivered = false;
+        }
+      }
+
+      if(allDelivered) {
+        order.status = OrderStatusEnum.COMPLETED;
+        await dataSource.manager.save(OrderEntity, order);
+      }
     })
   }
 
@@ -92,6 +118,10 @@ export class OrderService {
 
     if(!dto?.clientId) {
       throw new Error("Client ID is required");
+    }
+
+    if(!userId) {
+      throw new Error("User ID is required");
     }
 
     const client = await dataSource.manager.findOne(ClientEntity, {where: {id: dto.clientId}}).then(client => {
@@ -113,10 +143,12 @@ export class OrderService {
       }
       let orderProduct= await dataSource.manager.save(OrderProductEntity, Builder<OrderProductEntity>()
         .product(product)
+        .productName(product.name)
         .price(dto.orderProducts[i].price)
         .quantity(dto.orderProducts[i].quantity)
         .status(dto.orderProducts[i].status)
         .total(dto.orderProducts[i].total).build())
+
       products.push(orderProduct)
     }
     const newOrder = Builder<OrderEntity>().orderProducts(products).userId(userId)
@@ -124,6 +156,8 @@ export class OrderService {
       .client(client)
       .status(OrderStatusEnum.DRAFT)
       .build();
+
+
 
     if(dto?.expectedDeliveryDate || dto?.expectedPickupDate) {
       newOrder.status = OrderStatusEnum.PROCESSING;
@@ -135,7 +169,8 @@ export class OrderService {
   }
 
   public async cancelOrder(role: string, id: string) {
-    return dataSource.manager.findOne(OrderEntity, {where: {id}}).then(order => {
+    this.logger.log(`cancel order: ${id}`)
+    return dataSource.manager.findOne(OrderEntity, {where: {id: id}, relations: ["orderProducts"]}).then(order => {
       if(!order) {
         throw new Error("Order not found");
       }
@@ -143,9 +178,13 @@ export class OrderService {
       //sales order can only be cancelled if it is in draft or holding status
       if(order.status === OrderStatusEnum.DRAFT || order.status === OrderStatusEnum.PROCESSING) {
         order.status = OrderStatusEnum.CANCELLED;
+        for(let i=0; i<order.orderProducts.length; i++) {
+          order.orderProducts[i].status = OrderProductStatusEnum.CANCELLED;
+          dataSource.manager.save(OrderProductEntity, order.orderProducts[i]);
+        }
       }
 
-      return dataSource.manager.save(order);
+      return dataSource.manager.save(OrderEntity, order);
     })
   }
 

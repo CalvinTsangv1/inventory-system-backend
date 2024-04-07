@@ -6,7 +6,7 @@ import moment from "moment-timezone";
 import {dataSource} from "../../../util/data-source";
 import {ReportEntity} from "../entity/report.entity";
 import {ProductEntity} from "../../product/entity/product.entity";
-import {Between} from "typeorm";
+import {And, Between, MoreThanOrEqual} from "typeorm";
 import {CategoryTypeEnum} from "../../product/enum/category-type.enum";
 import {OrderService} from "../../order/service/order.service";
 
@@ -27,17 +27,11 @@ export class ReportService {
     this.dailyReportGenerationTime = this.configService.get<string>("DAILY_REPORT_GENERATION_TIME");
   }
 
-  private async getDailyReportGenerationTime() {
-    return {
-      today: moment().startOf('day').add(Number(this.dailyReportGenerationTime.split(":")[0]), 'hours').add(Number(this.dailyReportGenerationTime.split(":")[1]), 'minutes'),
-      previousDay: moment().subtract(1, 'days').startOf('day').add(Number(this.dailyReportGenerationTime.split(":")[0]), 'hours').add(Number(this.dailyReportGenerationTime.split(":")[1]), 'minutes')
-    };
-
-  }
 
   private async getReport(fileName: string) {
-    const {today, previousDay} = await this.getDailyReportGenerationTime();
-    return dataSource.manager.findOne(ReportEntity, {where: {name: fileName, updatedAt: Between(today.toDate(), previousDay.toDate())}});
+    const today = moment().startOf('day').add(Number(this.dailyReportGenerationTime.split(":")[0]), 'hours').add(Number(this.dailyReportGenerationTime.split(":")[1]), 'minutes')
+    this.logger.log(`report: ${JSON.stringify(await dataSource.manager.findOne(ReportEntity, {where: {name: fileName}}))}`)
+    return dataSource.manager.findOne(ReportEntity, {where: {name: fileName, updatedAt: MoreThanOrEqual(today.toDate())}});
 
   }
 
@@ -46,19 +40,25 @@ export class ReportService {
     if(this.dailyReportGenerationTime === null) {
       throw new Error("Daily report generation time is not set");
     }
+    const product = await this.productService.getProductById(productId);
+    if(!product) {
+      return {body:"🔍 產品編號未找到，請再試一次！🙈"};
+    }
     const fileName = `daily_report_${productId}.png`;
     const result = await this.getReport(fileName);
 
     /* if the report is not generated yet, generate it */
     if(!result?.mediaUrl) {
-      const result = [await this.productService.getAvailableProductInventory(productId),
+      const result = [
+        await this.productService.getImportedProductInventory(productId),
+        await this.productService.getExportedProductInventory(productId),
+        await this.productService.getAvailableProductInventory(productId),
         await this.productService.getDeliveredProductInventory(productId),
-        await this.productService.getConfirmedProductInventory(productId),
         await this.productService.getHoldingProductInventory(productId),
         await this.productService.getWaitingProductInventory(productId)]
-      const mediaUrl = await this.generateBarChart(["Available", "Delivered", "Confirmed", "Holding", "Waiting"],
+      const mediaUrl = await this.generateBarChart(["Imported", "Exported", "Available", "Delivered", "Confirmed", "Holding", "Waiting"],
         "Daily Report: Total Inventory", result, fileName);
-      const description = `🔎 Inventory for ${productId} : \n\nAvailable: ${result[0]} \nDelivered: ${result[1]} \nConfirmed: ${result[2]} \nHolding: ${result[3]} \nWaiting: ${result[4]}`
+      const description = `🔎 ${product.name}產品庫存 (編號: ${productId}) (${product.unit}): \n\n進口數量：${result[0]} \n出口數量：${result[1]} \n可用數量：${result[2]} \n已交付數量：${result[3]} \n持有數量： ${result[4]} \n等待數量：${result[5]}`
 
       await dataSource.manager.save(ReportEntity, {name: fileName, description: description, mediaUrl: mediaUrl});
       return {body: description, mediaUrl: mediaUrl}
@@ -80,7 +80,7 @@ export class ReportService {
       const mediaUrl = await this.generateBarChart(categoryInventory.map(item => item.name),
         "Daily Report: Total Category Inventory",
         categoryInventory.map(item => item.count), fileName);
-      const description = `🔎 Available Category Inventory: \n\n${categoryInventory.map((item, index) => `${index+1}. ${item.name} -- ${item.count}`).join("\n")}`
+      const description = `🔎  可用種類庫存： \n\n${categoryInventory.map((item, index) => `${index+1}. ${item.name} -- ${item.count}`).join("\n")}`
 
       await dataSource.manager.save(ReportEntity, {name: fileName, description: description, mediaUrl: mediaUrl});
       return {body: description, mediaUrl: mediaUrl}
@@ -96,10 +96,10 @@ export class ReportService {
     if(!result?.mediaUrl) {
 
       const inventory = await this.productService.getAllInventory();
-      const mediaUrl = await this.generateBarChart(["Waiting", "Holding", "Delivered", "Cancelled", "Available"],
+      const mediaUrl = await this.generateBarChart(["Imported", "Exported", "Available", "Waiting", "Holding", "Delivered", "Cancelled"],
         "Daily Report: Total Inventory",
         inventory, fileName);
-      const description = `🔎 Available Inventory: \n\n${inventory.map((item, index) => `${index+1}. ${item}`).join("\n")}`
+      const description = `🔎 每日庫存: \n\n入貨: ${inventory[0]} \n出貨: ${inventory[1]} \n存貨: ${inventory[2]} \n等待中: ${inventory[3]} \n持有未交付: ${inventory[4]} \n已交付: ${inventory[5]} \n已取消: ${inventory[6]}`
 
       await dataSource.manager.save(ReportEntity, {name: fileName, description: description, mediaUrl: mediaUrl});
       return {body: description, mediaUrl: mediaUrl}
@@ -110,18 +110,18 @@ export class ReportService {
 
   public async getAvailableCategoryTextReport(type: CategoryTypeEnum) {
     if(!Object.values(CategoryTypeEnum).includes(type)) {
-      return "Category type not found, please type again! 🙈";
+      return "種類未找到，請重新輸入！🙈\n種類選項: \n1: FISH \n2: MOLLUSK \n3: SEAWEED \n4: CRUSTACEAN";
     }
     const categoryInventory = await this.productService.getAvailableCategoryInventory(type);
-    const result = categoryInventory.map(item => `👉${item?.name} (Unit: ${item?.unit})\nCost: $${item?.cost}\nAvailable: ${item?.count}\n📝Description:\n${item?.description}\n`).join("\n");
-    return `🔎 Available Inventory for ${type} Category: \n\n${result}`;
+    const result = categoryInventory.map(item => `👉${item?.name} (單位: ${item?.unit})\n成本: $${item?.cost}\n庫存數量: ${item?.count}\n📝描述:\n${item?.description}\n`).join("\n");
+    return `🔎 ${type} 種類的庫存情況: \n\n${result}`;
   }
 
   public async getAvailableProductTextReport(productId: string) {
     const item = await dataSource.manager.findOne(ProductEntity, {where: {id: productId}});
-    if(!item?.name) { return "Product code not found, please type again! 🙈" }
+    if(!item?.name) { return "產品代碼未找到，請重新輸入！🙈" }
 
-    return `🔎 Inventory for ${item?.name} (code: ${productId}) : \n\nAvailable: ${await this.productService.getAvailableProductInventory(productId)} \nDelivered: ${await this.productService.getDeliveredProductInventory(productId)} \nHolding: ${await this.productService.getHoldingProductInventory(productId)} \n`;
+    return `🔎 ${item?.name} 的庫存 (代碼: ${productId}) : \n\n可用庫存: ${await this.productService.getAvailableProductInventory(productId)} \n已交付庫存: ${await this.productService.getDeliveredProductInventory(productId)} \n持有庫存: ${await this.productService.getHoldingProductInventory(productId)} \n`;
   }
 
   public async getAvailableDailyTextReport() {
@@ -130,15 +130,15 @@ export class ReportService {
 
   public async getOrderTextReport(orderId: string) {
     if(orderId === null || orderId === "") {
-      return `Type order id to get the report! 🙈`
+      return `輸入訂單編號以獲取報告！🙈`
     }
     const result = await this.orderService.getOrderById(orderId)
 
     if(!result) {
-      return `Order not found, please try again! 🙈`;
+      return `訂單未找到，請再試一次！🙈`;
     }
 
-    return `🔍 Your Order (ID: ${result.id}):\nCreate Date: ${result.createdAt.toDateString()}\n\n👉Client:\nName: ${result.client.contactName}\nPhone number:${result.client.phoneNumber}\n👉Status: ${result.status}\n👉Expected DeliveryDate:\n${result.expectedDeliveryDate.toDateString()}\n👉Expected Pickup Date:\n${result.expectedPickupDate.toDateString()}\n👉Product List:\n${result.orderProducts.map(item => `${item.product.id}: ${item.product.name} $${item.product.price} x ${item.quantity}`).join("\n")}\n`;
+    return `🔍 您的訂單 (ID: ${result.id}) ：\n建立日期: ${result.createdAt.toDateString()}\n\n👉 客戶:\n姓名: ${result.client.contactName}\n電話號碼: ${result.client.phoneNumber}\n\n👉 狀態: ${result.status}\n👉 預計交貨日期:\n${result.expectedDeliveryDate.toDateString()}\n👉 預計取貨日期:\n${result.expectedPickupDate.toDateString()}\n👉 產品清單:\n${result.orderProducts.map(item => `(編號${item.product.id}): ${item.product.name}  $${item.product.price} x ${item.quantity}`).join("\n")}\n`;
   }
 
   public async generateBarChart(labelValues: string[], labelName: string, resultData: number[], fileName: string): Promise<string> {

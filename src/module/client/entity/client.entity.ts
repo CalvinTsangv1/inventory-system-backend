@@ -26,7 +26,7 @@ export class ClientEntity implements TimestampInterface {
   @Column({type: "varchar", length: 255})
   phoneNumber: string;
 
-  @Column({type: "text"})
+  @Column({type: "text", nullable: true})
   description: string;
 
   @OneToMany(() => OrderEntity, order => order.client)

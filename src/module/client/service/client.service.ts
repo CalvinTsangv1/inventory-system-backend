@@ -1,4 +1,4 @@
-import {Injectable} from "@nestjs/common";
+import {Injectable, Logger} from "@nestjs/common";
 import {GetClientsRequestDto} from "../dto/get-clients.request.dto";
 import {Between, FindOptionsWhere, In} from "typeorm";
 import {ClientEntity} from "../entity/client.entity";
@@ -12,6 +12,9 @@ import {GetClientOrdersRequestDto} from "../dto/get-client-orders.request.dto";
 
 @Injectable()
 export class ClientService {
+
+    private readonly logger = new Logger(ClientService.name);
+
     constructor() {
     }
 
@@ -19,18 +22,21 @@ export class ClientService {
         if(!dto) throw new Error('Client data is required');
 
         const client = Builder<ClientEntity>()
-          .contactName(dto.clientName)
-          .phoneNumber(dto.phoneNumber)
-          .address(dto.address)
-          .description(dto.description)
+          .contactName(dto?.clientName)
+          .phoneNumber(dto?.phoneNumber)
+          .address(dto?.address)
+          .description(dto?.description)
+          .userId(dto?.userId)
           .build();
+
+        return dataSource.manager.save(ClientEntity,client);
     }
 
     public async updateClient(id: string, dto: UpdateClientRequestDto) {
         const client = await dataSource.manager.findOne(ClientEntity, {where: {id}});
         if(!client) throw new Error('Client not found');
 
-        if(dto.clientName) client.contactName = dto.clientName;
+        if(dto.contactName) client.contactName = dto.contactName;
         if(dto.phoneNumber) client.phoneNumber = dto.phoneNumber;
         if(dto.address) client.address = dto.address;
         if(dto.description) client.description = dto.description;
@@ -38,9 +44,16 @@ export class ClientService {
         return dataSource.manager.save(client);
     }
 
-    public async getClientDetails(id: string) {
-        return dataSource.manager.findOne(ClientEntity, {where: {id}});
+    public async getClientDetails(dto: GetClientsRequestDto) {
+        const condition = {userId: dto.userId};
+
+        if(dto.clientId) condition["id"] = dto.clientId;
+        if(dto.phoneNumber) condition["phoneNumber"] = dto.phoneNumber;
+        if(dto.contactName) condition["contactName"] = dto.contactName;
+
+        return dataSource.manager.findOne(ClientEntity, {where: condition})
     }
+
 
     public async getClientOrders(id: string, dto: GetClientOrdersRequestDto) {
         const condition = {id: id};
@@ -72,6 +85,8 @@ export class ClientService {
           .sortBy(dto.sortBy)
           .sortOrder(dto.sortOrder)
           .build();
+
+        this.logger.log(`get clients list: ${JSON.stringify(condition)}`);
 
         return getPaginatedResult(ClientEntity, condition, options, ['orders']);
     }

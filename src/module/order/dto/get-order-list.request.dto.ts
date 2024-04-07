@@ -1,10 +1,14 @@
-import {ApiPropertyOptional} from "@nestjs/swagger";
+import {ApiProperty, ApiPropertyOptional} from "@nestjs/swagger";
 import {IsArray, IsBoolean, IsDateString, IsEnum, IsNumber, IsOptional, IsString} from "class-validator";
 import {OrderStatusEnum} from "../enum/order-status.enum";
 import {Transform} from "class-transformer";
 import {SortOrderEnum} from "../../../util/pagination/sort-order.enum";
 
 export class GetOrderListRequestDto {
+
+  @ApiProperty()
+  @IsString()
+  userId: string;
 
   @ApiPropertyOptional()
   @IsOptional()

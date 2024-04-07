@@ -1,4 +1,4 @@
-import {Column, Entity, ManyToOne, OneToOne, PrimaryGeneratedColumn} from "typeorm";
+import {Column, CreateDateColumn, Entity, ManyToOne, OneToOne, PrimaryGeneratedColumn} from "typeorm";
 import {OrderEntity} from "./order.entity";
 import {ProductEntity} from "../../product/entity/product.entity";
 import {OrderProductStatusEnum} from "../enum/order-product-status.enum";
@@ -16,6 +16,9 @@ export class OrderProductEntity {
   product: ProductEntity;
 
   @Column()
+  productName: string;
+
+  @Column()
   status: OrderProductStatusEnum
 
   @Column()
@@ -26,5 +29,8 @@ export class OrderProductEntity {
 
   @Column()
   total: number;
+
+  @CreateDateColumn({ type: 'datetime' })
+  createdAt: Date;
 
 }

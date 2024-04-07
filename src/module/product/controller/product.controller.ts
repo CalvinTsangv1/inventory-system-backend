@@ -7,6 +7,7 @@ import {CreateProductRequestDto} from "../dto/product/create-product.request.dto
 import { GetProductRequestDto } from "../dto/product/get-product.request.dto";
 import {UpdateProductPriceRequestDto} from "../dto/product/update-product-price.request.dto";
 import {GetProductOrderRequestDto} from "../dto/product/get-product-order.request.dto";
+import {UpdateProductStockQuantityRequestDto} from "../dto/product/update-product-stock-quantity.request.dto";
 
 const AllowUnauthorizedRequest = () => SetMetadata('allowUnauthorizedRequest', true);
 @ApiBearerAuth()
@@ -79,7 +80,7 @@ export class ProductController {
 
   @Patch('stock-quantity/:productId')
   @ApiOperation({summary: 'Update catalog product stock quantity'})
-  public async updateProductStockQuantity(@Param('productId') id: string, @Body() updateProductDto: UpdateProductRequestDto) {
+  public async updateProductStockQuantity(@Param('productId') id: string, @Body() updateProductDto: UpdateProductStockQuantityRequestDto) {
     return this.productService.updateProductStockQuantity(id, updateProductDto);
   }
 

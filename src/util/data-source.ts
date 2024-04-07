@@ -9,6 +9,7 @@ import {OrderEntity} from "../module/order/entity/order.entity";
 import {OrderProductEntity} from "../module/order/entity/order-product.entity";
 import {NotificationEntity} from "../module/notification/entity/notification.entity";
 import {ReportEntity} from "../module/report/entity/report.entity";
+import {ProductHistoryLogEntity} from "../module/product/entity/product-history-log.entity";
 
 config(); // Load environment variables from .env
 export const dataSource = new DataSource({
@@ -25,7 +26,8 @@ export const dataSource = new DataSource({
     OrderEntity,
     OrderProductEntity,
     NotificationEntity,
-    ReportEntity
+    ReportEntity,
+    ProductHistoryLogEntity
   ],
   synchronize: process.env.ENV === "dev", // auto create table if not exist but not recommended in production
 });

@@ -3,7 +3,7 @@ import {ConfigService} from "@nestjs/config";
 import {dataSource} from "../../../util/data-source";
 import {ProductEntity} from "../entity/product.entity";
 import {getPaginatedResult} from "../../../util/pagination/pagination";
-import {Between, FindOptionsWhere, In, Not} from "typeorm";
+import {Between, FindOptionsWhere, In, Like, Not} from "typeorm";
 import {PaginationInterface} from "../../../interface/pagination.interface";
 import {CreateProductRequestDto} from "../dto/product/create-product.request.dto";
 import {Builder} from "builder-pattern";
@@ -16,13 +16,18 @@ import {SortOrderEnum} from "../../../util/pagination/sort-order.enum";
 import {OrderProductEntity} from "../../order/entity/order-product.entity";
 import {CategoryTypeEnum} from "../enum/category-type.enum";
 import {OrderProductStatusEnum} from "../../order/enum/order-product-status.enum";
+import {EventEmitter2} from "@nestjs/event-emitter";
+import {ProductHistoryLogEntity} from "../entity/product-history-log.entity";
+import {ProductInventoryStatusEnum} from "../enum/product-inventory-status.enum";
+import {UpdateProductStockQuantityRequestDto} from "../dto/product/update-product-stock-quantity.request.dto";
 
 @Injectable()
 export class ProductService {
 
   private logger = new Logger(ProductService.name)
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService,
+              public readonly eventEmitter: EventEmitter2) {}
 
 
   //** get product
@@ -50,8 +55,6 @@ export class ProductService {
 
     let products = await getPaginatedResult(ProductEntity, condition, options, relation)
 
-    this.logger.log(`products: ${JSON.stringify(products)}`)
-
     return await Promise.all(products?.docs?.map(async (product: ProductEntity) => {
       const totalOrderQuantity = await this.getHoldingProductInventory(product.id);
       const totalOrderConfirmedQuantity = await this.getConfirmedProductInventory(product.id);
@@ -60,7 +63,15 @@ export class ProductService {
   }
 
   public async getProductById(id: string) {
-    return dataSource.manager.findOne(ProductEntity, {where:{id:id}});
+    return dataSource.manager.findOne(ProductEntity, {where:{id:id}}).then(async product => {
+      const totalOrderQuantity = await this.getHoldingProductInventory(product.id);
+      const totalOrderConfirmedQuantity = await this.getConfirmedProductInventory(product.id);
+      return {...product, totalHoldingQuantity: totalOrderQuantity, totalConfirmedQuantity: totalOrderConfirmedQuantity}
+    })
+  }
+
+  public async searchProductByName(name: string) {
+    return dataSource.manager.find(ProductEntity, {where:{name: Like(`%${name}%`)}});
   }
 
   public async getProductOrder(id: string, dto: GetProductOrderRequestDto) {
@@ -116,16 +127,24 @@ export class ProductService {
     return dataSource.manager.save(product);
   }
 
-  public async updateProductStockQuantity(id: string, updateProductDto: UpdateProductRequestDto){
+  public async updateProductStockQuantity(id: string, updateProductDto: UpdateProductStockQuantityRequestDto){
     const product = await this.getProductById(id);
-    if(updateProductDto?.productName) product.name = updateProductDto.productName;
-    if(updateProductDto?.productDescription) product.description = updateProductDto.productDescription;
-    if(updateProductDto?.quantity) product.stockQuantity = updateProductDto.quantity;
-    return dataSource.manager.save(product);
+    product.stockQuantity = product.stockQuantity + updateProductDto.quantity;
+
+    this.eventEmitter.emit('product.imported', Builder<ProductHistoryLogEntity>().product(product).quantity(updateProductDto.quantity).build())
+    await dataSource.manager.save(ProductEntity, product);
+
+    //find waiting order and update status
+    const waitingOrders = await dataSource.manager.find(OrderProductEntity, {where:{product: {id: id}, status: OrderProductStatusEnum.WAITING}, order: {createdAt: 'ASC'}});
+    for(let i=0; i<waitingOrders.length; i++) {
+      updateProductDto.quantity = updateProductDto.quantity - waitingOrders[i].quantity;
+      if(updateProductDto.quantity <= 0) break;
+      waitingOrders[i].status = OrderProductStatusEnum.HOLDING;
+      await dataSource.manager.save(OrderProductEntity, waitingOrders[i]);
+    }
   }
 
   //** create product
-
   public async createProduct(createProductDto: CreateProductRequestDto) {
 
     const product = Builder<ProductEntity>()
@@ -224,24 +243,38 @@ export class ProductService {
     return (totalQuantity.stockQuantity - occupiedQuantity) ?? 0;
   }
 
+  public async getImportedProductInventory(productId?: string) {
+    return await dataSource.manager.sum(ProductHistoryLogEntity, "quantity", {product: {id: productId}, type: ProductInventoryStatusEnum.IMPORTED, createdAt: Between(new Date(new Date().setHours(0,0,0,0)), new Date(new Date().setHours(23,59,59,999)))}) ?? 0;
+  }
+
+  public async getExportedProductInventory(productId?: string) {
+    return await dataSource.manager.sum(ProductHistoryLogEntity, "quantity", {product: {id: productId}, type: ProductInventoryStatusEnum.EXPORTED, createdAt: Between(new Date(new Date().setHours(0,0,0,0)), new Date(new Date().setHours(23,59,59,999)))}) ?? 0;
+  }
+
+  public async isExistProduct(productId: string) {
+    return dataSource.manager.exists(ProductEntity, {where:{id: productId}});
+  }
+
   public async getAvailableCategoryInventory(type: CategoryTypeEnum): Promise<any> {
     const catalog = await dataSource.manager.find(ProductEntity, {where: {category: type}});
     const inventory = []
     for(let i=0; i<catalog.length; i++) {
-      inventory.push({name: catalog[i].name, count: await this.getAvailableProductInventory(catalog[i].id), unit: catalog[i].unit, cost: catalog[i].price, description: catalog[i].description})
+      inventory.push({name: catalog[i].name, count: await this.getAvailableProductInventory(catalog[i].id), unit: catalog[i].unit, cost: catalog[i].price, description: catalog[i].description ?? 0})
     }
     return inventory;
   }
 
   public async getAllInventory() {
     const result = []
+    result.push(await dataSource.manager.sum(ProductHistoryLogEntity, "quantity", {type: ProductInventoryStatusEnum.IMPORTED, createdAt: Between(new Date(new Date().setHours(0,0,0,0)), new Date(new Date().setHours(23,59,59,999)))}) ?? 0)
+    result.push(await dataSource.manager.sum(ProductHistoryLogEntity, "quantity", {type: ProductInventoryStatusEnum.EXPORTED, createdAt: Between(new Date(new Date().setHours(0,0,0,0)), new Date(new Date().setHours(23,59,59,999)))}) ?? 0)
+    const availableStock = await dataSource.manager.sum(ProductEntity, "stockQuantity", {})-result[2]-result[1];
+    result.push(availableStock > 0 ? availableStock : 0)
     result.push(await dataSource.manager.sum(OrderProductEntity, "quantity", {status: OrderProductStatusEnum.WAITING}) ?? 0)
     result.push(await dataSource.manager.sum(OrderProductEntity, "quantity", {status: OrderProductStatusEnum.HOLDING}) ?? 0)
     result.push(await dataSource.manager.sum(OrderProductEntity, "quantity", {status:In([OrderProductStatusEnum.CONFIRMED, OrderProductStatusEnum.DELIVERED])}) ?? 0)
     result.push(await dataSource.manager.sum(OrderProductEntity, "quantity", {status: OrderProductStatusEnum.CANCELLED}) ?? 0)
-    result.push(await dataSource.manager.sum(ProductEntity, "stockQuantity", {})-result[2]-result[1])
     return result;
   }
-
 
 }

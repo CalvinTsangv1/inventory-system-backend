@@ -1,10 +1,14 @@
-import {ApiPropertyOptional} from "@nestjs/swagger";
+import {ApiProperty, ApiPropertyOptional} from "@nestjs/swagger";
 import {IsBoolean, IsEnum, IsNumber, IsOptional, IsString} from "class-validator";
 import {PaginationInterface} from "../../../interface/pagination.interface";
 import {Transform} from "class-transformer";
 import {SortOrderEnum} from "../../../util/pagination/sort-order.enum";
 
 export class GetClientsRequestDto implements PaginationInterface {
+
+  @ApiProperty()
+  @IsString()
+  userId: string;
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -22,7 +22,7 @@ export async function getPaginatedResult(entity: any, condition: FindOptionsWher
   const paginationOptions: PaginationInterface = Builder<PaginationInterface>()
     .pagination(options?.pagination ?? true)
     .page(options?.page ?? 1)
-    .limit(options?.limit ?? 10)
+    .limit(options?.limit ?? 20)
     .sortBy(options?.sortBy ?? "id")
     .sortOrder(options?.sortOrder ?? SortOrderEnum.ASC)
     .build();
@@ -41,7 +41,6 @@ export async function getPaginatedResult(entity: any, condition: FindOptionsWher
   if (relations && relations.length > 0) {
     relations.map(relation => queryBuilder.leftJoinAndSelect(`${alias}.${relation}`, relation));
   }
-
   const [result, totalDocs] = await queryBuilder.getManyAndCount();
 
   if (paginationOptions.pagination === false) {

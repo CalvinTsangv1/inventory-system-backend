@@ -12,6 +12,7 @@ import {FindOptionsWhere} from "typeorm";
 import {OrderService} from "../service/order.service";
 import {UpdateOrderRequestDto} from "../dto/update-order.request.dto";
 import {CurrentUser} from "../../../decorator/current-user.decorator";
+import {OrderProductStatusEnum} from "../enum/order-product-status.enum";
 
 @ApiBearerAuth()
 @Controller("orders")
@@ -28,15 +29,15 @@ export class OrderController {
   }
 
   @Get('')
-  public async getOrderList(@CurrentUser() userId: string, @Query() dto: GetOrderListRequestDto) {
+  public async getOrderList(/*@CurrentUser() user: any, */@Query() dto: GetOrderListRequestDto) {
     this.logger.log(`get order list: ${JSON.stringify(dto)}`)
-    return this.orderService.getOrderList("1", dto);
+    return this.orderService.getOrderList(dto.userId, dto);
   }
 
   @Post()
   @ApiOperation({summary: 'Create order'})
-  public async createOrder(@CurrentUser() user: any, @Body() dto: CreateOrderRequestDto) {
-    return this.orderService.createOrder("1", dto);
+  public async createOrder(/*@CurrentUser() user: any, */@Body() dto: CreateOrderRequestDto) {
+    return this.orderService.createOrder(dto.userId, dto);
   }
 
   @Get('cronjob/update-completed-order')
@@ -45,7 +46,9 @@ export class OrderController {
   }
 
   @Patch(':orderId/status')
-  public async updateOrderStatus(@Param('orderId')id: string, @Body() dto: {status: OrderStatusEnum}) {
+  public async updateOrderStatus(@Param('orderId')id: string, @Body() dto: {orderProductId: string, status: OrderProductStatusEnum}) {
+    this.logger.log(`id: ${id}`)
+    this.logger.log(`update order status: ${JSON.stringify(dto)}`)
     return this.orderService.updateOrderStatus(id, dto);
   }
 
@@ -56,7 +59,7 @@ export class OrderController {
   }
 
   @Delete(':orderId')
-  public async cancelOrder(@CurrentUser() user: any, id: string) {
+  public async cancelOrder(@Param("orderId") id: string) {
     return this.orderService.cancelOrder("sales",id);
   }
 

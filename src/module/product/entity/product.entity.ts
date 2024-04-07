@@ -10,6 +10,7 @@ import {CategoryTypeEnum} from "../enum/category-type.enum";
 import { CurrencyEnum } from "src/enum/currency.enum";
 import {OrderEntity} from "../../order/entity/order.entity";
 import {OrderProductEntity} from "../../order/entity/order-product.entity";
+import {ProductHistoryLogEntity} from "./product-history-log.entity";
 
 @Entity("products")
 export class ProductEntity implements TimestampInterface {
@@ -40,6 +41,9 @@ export class ProductEntity implements TimestampInterface {
 
   @Column({type: "text", nullable: true})
   photoUrl: string;
+
+  @OneToMany(() => ProductHistoryLogEntity, productHistoryLog => productHistoryLog.product)
+  logs: ProductHistoryLogEntity[];
 
   @OneToMany(() => OrderProductEntity, orderProduct => orderProduct.product)
   orderProducts: OrderProductEntity[];
