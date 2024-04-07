@@ -20,6 +20,9 @@ To address these challenges, we have developed a Node.js application integrated 
 - **Flexibility**: Leveraging WhatsApp's features such as text messaging, image sharing, and group chats offers flexibility in communication within the application.
 - **Availability**: WhatsApp has a large user base worldwide, making it an accessible communication channel for your application's users.
 
+## Video Demonstration
+- **[Link to Video Demonstration](https://drive.google.com/file/d/1PZkC4S7X-VxIHeRyu2QMBo1XIYu1vxxM/view?usp=sharing)**
+
 ## Features
 - Real-time inventory tracking: Keep track of available stock levels and receive notifications for low stock.
 - Automated order processing: Streamline the order-taking process from initiation to packaging, reducing human errors.
