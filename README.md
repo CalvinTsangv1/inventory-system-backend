@@ -40,16 +40,6 @@ To address these challenges, we have developed a Node.js application integrated 
 4. **Run the Application**: Start the Node.js application using `npm start`.
 5. **Interact via WhatsApp**: Sales, warehouse, and admin personnel can now interact with the system via WhatsApp to access inventory information, place orders, and generate reports.
 
-## MySQL Structure
-
-### Tables
-- Orders
-- Products
-- Clients
-- Inventory
-- OrderItem
-- ProductCategory
-
 ## Contributors
 - Calvin Tsang - Backend Developer / Leader
 - Calvin Tsang - Project Manager
