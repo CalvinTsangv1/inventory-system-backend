@@ -1,7 +1,7 @@
 # Winful Seafood Int'l Ltd Automation Solution Readme
 
 ## Introduction
-Welcome to the readme for the Winful Seafood Int'l Ltd Automation Solution! This project aims to address the challenges faced by Winful Seafood Int'l Ltd, a Toronto-based seafood distributor, by implementing a customized automation solution integrated with QuickBooks.
+Winful Seafood Int'l Ltd Automation Solution! This project aims to address the challenges faced by Winful Seafood Int'l Ltd, a Toronto-based seafood distributor, by implementing a customized automation solution integrated with QuickBooks.
 
 ## Background
 Winful Seafood Int'l Ltd is a family-owned business with over a decade of experience in the seafood industry. The company heavily relies on QuickBooks for essential tasks such as invoicing, stocking, and accounting. However, manual processes have led to frequent errors in daily operations, prompting the need for an automated solution.
@@ -57,7 +57,7 @@ This project is licensed under the [MIT License](LICENSE).
 We would like to thank the team at Winful Seafood Int'l Ltd for their collaboration and support throughout the development process. Special thanks to [Any other specific acknowledgements or dependencies used in the project can be mentioned here].
 
 ### PowerPoint Presentation
-- **[Link to PowerPoint Presentation](insert_link_here)**
+- **[Link to PowerPoint Presentation](https://docs.google.com/presentation/d/1kUpNajkOu1tzD93bdBFktPHLtMFpLnCl_XyrQimcNCU/edit?usp=sharing)**
 
 
 
