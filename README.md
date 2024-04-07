@@ -24,8 +24,8 @@ To address these challenges, we have developed a Node.js application integrated 
 - **[Link to Video Demonstration](https://drive.google.com/file/d/1PZkC4S7X-VxIHeRyu2QMBo1XIYu1vxxM/view?usp=sharingw)**
 
 ## Bar Chart
-![Bar Chart Daily Report](daily_report_undefined.png)
-![Bar Chart Product Report](daily_report_product.png)
+![Bar Chart Daily Report](daily_report_undefined.jpg)
+![Bar Chart Product Report](daily_report_product.jpg)
 
 ## Features
 - Real-time inventory tracking: Keep track of available stock levels and receive notifications for low stock.
