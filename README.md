@@ -21,7 +21,11 @@ To address these challenges, we have developed a Node.js application integrated 
 - **Availability**: WhatsApp has a large user base worldwide, making it an accessible communication channel for your application's users.
 
 ## Video Demonstration
-- **[Link to Video Demonstration](https://drive.google.com/file/d/1PZkC4S7X-VxIHeRyu2QMBo1XIYu1vxxM/view?usp=sharing)**
+- **[Link to Video Demonstration](https://drive.google.com/file/d/1PZkC4S7X-VxIHeRyu2QMBo1XIYu1vxxM/view?usp=sharingw)**
+
+## Bar Chart
+![Bar Chart Daily Report](daily_report_undefined.png)
+![Bar Chart Product Report](daily_report_product.png)
 
 ## Features
 - Real-time inventory tracking: Keep track of available stock levels and receive notifications for low stock.
