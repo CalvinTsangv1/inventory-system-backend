@@ -1,4 +1,4 @@
-# Winful Seafood Int'l Ltd Automation Solution Readme
+# Winful Seafood Int'l Ltd Automation Solution
 
 ## Introduction
 Winful Seafood Int'l Ltd Automation Solution! This project aims to address the challenges faced by Winful Seafood Int'l Ltd, a Toronto-based seafood distributor, by implementing a customized automation solution integrated with QuickBooks.
