@@ -22,6 +22,7 @@ To address these challenges, we have developed a Node.js application integrated 
 
 ## Video Demonstration
 - **[Link to Video Demonstration](https://drive.google.com/file/d/1PZkC4S7X-VxIHeRyu2QMBo1XIYu1vxxM/view?usp=sharingw)**
+- ![Whatsapp Chatbot](whatsapp.gif)
 
 ## Bar Chart
 ![Bar Chart Daily Report](daily_report_undefined.jpg)
