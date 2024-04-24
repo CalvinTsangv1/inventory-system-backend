@@ -69,7 +69,7 @@ export class NotificationService {
             this.logger.log(`command is wrong: ${dto.Body}, from: ${dto.From} to: ${dto.To}`);
             await this.sendMessage(Builder<SendMessageRequestDto>()
               .toNumber(dto.From)
-              .body("🙇 無效指令 🙇\n糟糕！看起來您輸入了一個無效指令：\n\n👉 1. 種類庫存\n (輸入 👉 1:FISH)\n 類別值：FISH、MOLLUSK、SEAWEED、CRUSTACEAN\n\n👉 2. 產品庫存\n (輸入 👉2:產品代碼)\n 值：輸入產品代碼\n\n👉 3. 訂單\n (輸入：3:訂單代碼)\n 值：輸入訂單代碼\n\n👉 4. 尋找產品編號\n (輸入：4:產品編號)\n\n👉 5. 尋找種類編號\n\n👉 6. 每日報告\n (輸入：6)\n\n👉 7. 每日種類報告\n (輸入：7:種類編號)\n\n👉 8. 每日產品報告\n (輸入：8:產品編號)\n\n👉 9. 每週報告\n (範例：9)\n\n👉 10. 每月報告\n\n👉 11. 每年報告\n\n👉 12. 客戶資料\n\n👉 13. 幫助\n\n請按照上述格式輸入指令和值以進行操作。如果需要進一步協助，請輸入 '13' 以獲取幫助。\n")
+              .body("🙇 Invalid Command 🙇\nOops! It looks like you entered an invalid command:\n\n👉 1. Category Inventory\n (Enter 👉 1:FISH)\n Category values: FISH, MOLLUSK, SEAWEED, CRUSTACEAN\n\n👉 2. Product Inventory\n (Enter 👉2:Product Code)\n Value: Enter product code\n\n👉 3. Orders\n (Enter: 3:Order Code)\n Value: Enter order code\n\n👉 4. Find Product Number\n (Enter: 4:Product Number)\n\n👉 5. Find Category Number\n\n👉 6. Daily Report\n (Enter: 6)\n\nPlease enter the command and value in the format above to proceed. If further assistance is needed, enter '13' for help.")
               .type(MessageType.WHATSAPP)
               .build());
             return;
@@ -86,28 +86,34 @@ export class NotificationService {
     }
 
     public async handleIncomingCommand(command: number, value: string) {
+        this.logger.log(`handleIncomingCommand: ${command}, value: ${value}`)
+
+        if(value && value !== "") {
+            value = value.trim().toUpperCase()
+        }
+
         if(command === MessageCommandEnum.CATEGORY_INVENTORY) {
             return {body: await this.reportService.getAvailableCategoryTextReport(value as CategoryTypeEnum)}
         } else if(command === MessageCommandEnum.PRODUCT_INVENTORY) {
             if(!value || value === "") {
-                return {body: "🔍 搜尋產品代碼：\n\n請輸入產品名稱以獲取產品代碼和詳細資訊。📦"}
+                return {body: "🔍 Search for Product Code: \n\nPlease enter the product name to retrieve the product code and detailed information. 📦"}
             }
             return {body: await this.reportService.getAvailableProductTextReport(value)}
         } else if(command === MessageCommandEnum.ORDER) {
             if(!value || value === "") {
-                return {body: "🔍 搜尋訂單：\n\n請輸入訂單代碼以獲取訂單詳細資訊。📦"}
+                return {body: "🔍 Search for Order: \n\nPlease enter the order code to retrieve detailed information about the order. 📦"}
             }
             return {body: await this.reportService.getOrderTextReport(value)}
         } else if(command === MessageCommandEnum.SEARCH_PRODUCT_CODE) {
             if(!value || value === "") {
-                return {body: "🔍 搜尋產品代碼：\n\n請輸入產品名稱以獲取產品代碼和詳細資訊。📦"}
+                return {body: "🔍 Search for Product Code: \n\nPlease enter the product name to retrieve the product code and detailed information. 📦"}
             }
             const result = await this.productService.searchProductByName(value)
             if(result && result.length > 0) {
                 this.logger.log(`searchProductByName: ${JSON.stringify(result)}`)
-                return {body: `🔍 搜尋產品代碼：\n${result.map(product => `\n產品名稱：${product.name}\n產品代碼：${product.id}\n產品價格：${product.price}\n產品類別：${product.category}\n產品描述：${product.description}\n`)}`, mediaUrl: result.map(product=> product.photoUrl)}
+                return {body: `🔍 Search for Product Code: \n${result.map(product => `\nProduct Name: ${product.name}\nProduct Code: ${product.id}\nProduct Price: ${product.price}\nProduct Category: ${product.category}\nProduct Description: ${product.description}\n`)}`, mediaUrl: result.map(product=> product.photoUrl)}
             } else {
-                return {body: "🔍 搜尋產品代碼：\n\n找不到產品。請再試一次。 📦"}
+                return {body: "🔍 Search for Product Code:\n\nProduct not found. Please try again. 📦"}
             }
         } else if(command === MessageCommandEnum.SEARCH_CATEGORY_CODE) {
             return {body: "🔍 搜尋種類代碼：\n1. FISH\n2. MOLLUSK\n3. SEAWEED\n4. CRUSTACEAN"}

@@ -71,6 +71,7 @@ export class ProductService {
   }
 
   public async searchProductByName(name: string) {
+    this.logger.log(`searching product by name: ${name}`)
     return dataSource.manager.find(ProductEntity, {where:{name: Like(`%${name}%`)}});
   }
 

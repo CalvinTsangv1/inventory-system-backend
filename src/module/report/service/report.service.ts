@@ -99,7 +99,7 @@ export class ReportService {
       const mediaUrl = await this.generateBarChart(["Imported", "Exported", "Available", "Waiting", "Holding", "Delivered", "Cancelled"],
         "Daily Report: Total Inventory",
         inventory, fileName);
-      const description = `🔎 每日庫存: \n\n入貨: ${inventory[0]} \n出貨: ${inventory[1]} \n存貨: ${inventory[2]} \n等待中: ${inventory[3]} \n持有未交付: ${inventory[4]} \n已交付: ${inventory[5]} \n已取消: ${inventory[6]}`
+      const description = `🔎 Daily Inventory: \n\nPurchases: ${inventory[0]} \nSales: ${inventory[1]} \nInventory: ${inventory[2]} \nPending: ${inventory[3]} \nHeld but undelivered: ${inventory[4]} \nDelivered: ${inventory[5]} \nCancelled: ${inventory[6]}`
 
       await dataSource.manager.save(ReportEntity, {name: fileName, description: description, mediaUrl: mediaUrl});
       return {body: description, mediaUrl: mediaUrl}
@@ -110,18 +110,18 @@ export class ReportService {
 
   public async getAvailableCategoryTextReport(type: CategoryTypeEnum) {
     if(!Object.values(CategoryTypeEnum).includes(type)) {
-      return "種類未找到，請重新輸入！🙈\n種類選項: \n1: FISH \n2: MOLLUSK \n3: SEAWEED \n4: CRUSTACEAN";
+      return "Category not found, please re-enter! 🙈\nCategory options: \n1: FISH \n2: MOLLUSK \n3: SEAWEED \n4: CRUSTACEAN";
     }
     const categoryInventory = await this.productService.getAvailableCategoryInventory(type);
-    const result = categoryInventory.map(item => `👉${item?.name} (單位: ${item?.unit})\n成本: $${item?.cost}\n庫存數量: ${item?.count}\n📝描述:\n${item?.description}\n`).join("\n");
-    return `🔎 ${type} 種類的庫存情況: \n\n${result}`;
+    const result = categoryInventory.map(item => `👉${item?.name} (Unit: ${item?.unit})\nCost: $${item?.cost}\nInventory Quantity: ${item?.count}\n📝Description:\n${item?.description}\n`).join("\n");
+    return `🔎 ${type} Inventory Status of Categories: \n\n${result}`;
   }
 
   public async getAvailableProductTextReport(productId: string) {
     const item = await dataSource.manager.findOne(ProductEntity, {where: {id: productId}});
-    if(!item?.name) { return "產品代碼未找到，請重新輸入！🙈" }
+    if(!item?.name) { return "Product code not found, please re-enter! 🙈" }
 
-    return `🔎 ${item?.name} 的庫存 (代碼: ${productId}) : \n\n可用庫存: ${await this.productService.getAvailableProductInventory(productId)} \n已交付庫存: ${await this.productService.getDeliveredProductInventory(productId)} \n持有庫存: ${await this.productService.getHoldingProductInventory(productId)} \n`;
+    return `🔎 Inventory of ${item?.name} (Code: ${productId}) : \n\nAvailable Inventory: ${await this.productService.getAvailableProductInventory(productId)} \nDelivered Inventory: ${await this.productService.getDeliveredProductInventory(productId)} \nHolding Inventory: ${await this.productService.getHoldingProductInventory(productId)} \n`;
   }
 
   public async getAvailableDailyTextReport() {
@@ -130,12 +130,12 @@ export class ReportService {
 
   public async getOrderTextReport(orderId: string) {
     if(orderId === null || orderId === "") {
-      return `輸入訂單編號以獲取報告！🙈`
+      return `Please input the order number to retrieve the report! 🙈`
     }
     const result = await this.orderService.getOrderById(orderId)
 
     if(!result) {
-      return `訂單未找到，請再試一次！🙈`;
+      return `Order not found, please try again! 🙈`;
     }
 
     return `🔍 您的訂單 (ID: ${result.id}) ：\n建立日期: ${result.createdAt.toDateString()}\n\n👉 客戶:\n姓名: ${result.client.contactName}\n電話號碼: ${result.client.phoneNumber}\n\n👉 狀態: ${result.status}\n👉 預計交貨日期:\n${result.expectedDeliveryDate.toDateString()}\n👉 預計取貨日期:\n${result.expectedPickupDate.toDateString()}\n👉 產品清單:\n${result.orderProducts.map(item => `(編號${item.product.id}): ${item.product.name}  $${item.product.price} x ${item.quantity}`).join("\n")}\n`;
